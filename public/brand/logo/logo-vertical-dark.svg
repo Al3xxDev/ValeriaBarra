@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 190" width="240" height="190">
+  <g transform="translate(85, 16) scale(0.7)">
+    
+    <g fill="none" stroke="#f7f6f0" stroke-width="5.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 20,27 L 36,73 L 52,27"/>
+      <path d="M 52,27 L 52,73"/>
+      <path d="M 52,27 C 67,27 76,33 76,44 C 76,48 72,50 65,50 L 52,50"/>
+      <path d="M 52,50 L 68,50 C 76,50 80,53 80,62 C 80,71 72,73 52,73"/>
+    </g>
+  
+  </g>
+  <line x1="90" y1="100" x2="150" y2="100" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+  <text x="120" y="128" text-anchor="middle" fill="#f7f6f0" font-family="'Iowan Old Style', 'Baskerville Old Face', Georgia, serif" font-size="23" font-weight="400" letter-spacing="-0.5">Valeria Barra</text>
+  <text x="120" y="146" text-anchor="middle" fill="#c8d2c6" font-family="'Avenir Next', Avenir, 'Segoe UI', sans-serif" font-size="8" font-weight="600" letter-spacing="1.8">BIOLOGA NUTRIZIONISTA</text>
+  <text x="120" y="162" text-anchor="middle" fill="#8c978b" font-family="'Avenir Next', Avenir, 'Segoe UI', sans-serif" font-size="7" font-weight="500" letter-spacing="1.2">SALERNO</text>
+</svg>

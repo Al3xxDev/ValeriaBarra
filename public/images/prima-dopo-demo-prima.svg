@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" role="img" aria-labelledby="title desc">
+  <title id="title">Esempio dimostrativo, prima</title>
+  <desc id="desc">Composizione astratta con forme botaniche, senza persone reali.</desc>
+  <rect width="900" height="680" fill="#e7e3d8"/>
+  <path d="M0 505c150-95 265-53 389-121s244-108 511-32v328H0z" fill="#c6cec0"/>
+  <circle cx="270" cy="270" r="154" fill="#d1b9a5" opacity=".82"/>
+  <circle cx="270" cy="270" r="99" fill="#ebe6dc"/>
+  <path d="M527 469c46-136 104-208 182-248M564 501c93-67 154-93 238-100M504 430c-3-88-25-144-82-204" fill="none" stroke="#607966" stroke-linecap="round" stroke-width="12"/>
+  <path d="M641 291c-5-54 32-83 82-92-1 49-26 83-82 92m-79 78c-50-27-60-68-44-114 45 21 63 58 44 114m115 35c24-46 67-57 112-40-19 44-56 62-112 40" fill="#91a38e"/>
+  <text x="48" y="625" fill="#516254" font-family="Georgia,serif" font-size="21">Illustrazione dimostrativa</text>
+</svg>

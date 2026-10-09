@@ -1,0 +1,13 @@
+import Image from "next/image";
+import Link from "next/link";
+import type { Metadata } from "next";
+import { getArticles } from "@/lib/content";
+export const metadata: Metadata = { title: "Journal", description: "Riflessioni semplici su alimentazione, abitudini e benessere quotidiano.", alternates: { canonical: "/news" } };
+
+export default async function NewsPage({ searchParams }: { searchParams: Promise<{ q?: string; categoria?: string }> }) {
+  const [{ q, categoria }, articles] = await Promise.all([searchParams, getArticles()]);
+  const search = q?.trim().toLocaleLowerCase("it-IT");
+  const categories = [...new Set(articles.map((article) => article.category))];
+  const filtered = articles.filter((article) => (!search || `${article.title} ${article.subtitle} ${article.category}`.toLocaleLowerCase("it-IT").includes(search)) && (!categoria || article.category === categoria));
+  return <div className="page-shell"><section className="page-intro page-gutter"><span className="eyebrow">Appunti di nutrizione</span><h1>Una lettura alla<br /><em>volta, con calma.</em></h1><p>Spunti concreti per conoscere meglio il cibo e le abitudini che accompagnano le tue giornate.</p></section><section className="listing-section page-gutter"><form className="listing-filters" action="/news"><label className="search-field"><span className="sr-only">Cerca un articolo</span><input type="search" name="q" placeholder="Cerca un articolo…" defaultValue={q} /></label><label className="filter-field"><span className="sr-only">Filtra per categoria</span><select name="categoria" defaultValue={categoria ?? ""}><option value="">Tutte le categorie</option>{categories.map((item) => <option key={item}>{item}</option>)}</select></label><button className="filter-button" type="submit">Cerca <span aria-hidden="true">→</span></button></form>{filtered.length ? <div className="article-list">{filtered.map((article, index) => <Link className="article-list-item" href={`/news/${article.slug}`} key={article.slug}><div className="article-list-image"><Image loading={index === 0 ? "eager" : "lazy"} unoptimized={article.image.startsWith("/api/media/") || /^https?:\/\//i.test(article.image)} src={article.image} alt={article.imageAlt} fill sizes="(max-width: 760px) 35vw, 260px" className="cover-image" /></div><div className="article-list-copy"><div className="editorial-meta"><span>{article.category}</span><span>{article.date}</span></div><h2>{article.title}</h2><p>{article.subtitle}</p><span className="card-link">Leggi l’articolo <span aria-hidden="true">→</span></span></div></Link>)}</div> : <div className="listing-empty"><strong>Nessun articolo trovato.</strong><span>Prova a modificare la ricerca o la categoria.</span></div>}</section></div>;
+}

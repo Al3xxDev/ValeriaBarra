@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 70" width="270" height="70">
+  <g transform="translate(12, 11) scale(0.48)">
+    
+    <g fill="none" stroke="#304d3f" stroke-width="6.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 20,27 L 36,73 L 52,27"/>
+      <path d="M 52,27 L 52,73"/>
+      <path d="M 52,27 C 67,27 76,33 76,44 C 76,48 72,50 65,50 L 52,50"/>
+      <path d="M 52,50 L 68,50 C 76,50 80,53 80,62 C 80,71 72,73 52,73"/>
+    </g>
+  
+  </g>
+  <line x1="72" y1="20" x2="72" y2="50" stroke="#d5dbd0" stroke-width="1"/>
+  <text x="84" y="43" fill="#26372f" font-family="'Iowan Old Style', 'Baskerville Old Face', Georgia, serif" font-size="23" font-weight="400" letter-spacing="-0.5">Valeria Barra</text>
+</svg>

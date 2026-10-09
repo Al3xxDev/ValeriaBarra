@@ -1,0 +1,13 @@
+import Link from "next/link";
+import type { Metadata } from "next";
+export const metadata: Metadata = { title: "Percorsi nutrizionali", description: "Scopri i percorsi di consulenza nutrizionale personalizzati a Salerno.", alternates: { canonical: "/percorsi" } };
+
+const services = [
+  { id: "prima-visita", no: "01", title: "Prima visita", intro: "Un primo incontro per conoscerci, ascoltare la tua storia e capire cosa ti serve.", includes: ["Colloquio conoscitivo e raccolta delle abitudini", "Valutazione delle esigenze e degli obiettivi", "Indicazioni nutrizionali personalizzate", "Spazio per domande e chiarimenti"] },
+  { id: "controllo", no: "02", title: "Controllo", intro: "Un momento di confronto per fare il punto e adattare il percorso alla tua esperienza.", includes: ["Verifica di come stai vivendo le indicazioni", "Confronto su dubbi e cambiamenti", "Aggiornamento delle indicazioni"] },
+  { id: "educazione", no: "03", title: "Educazione alimentare", intro: "Conoscenze e strumenti pratici per vivere le scelte alimentari con più autonomia.", includes: ["Lettura delle etichette e organizzazione dei pasti", "Strategie per la spesa e la cucina quotidiana", "Approfondimenti costruiti sui tuoi interessi"] },
+];
+
+export default function PathsPage() {
+  return <div className="page-shell"><section className="page-intro page-gutter"><span className="eyebrow">Percorsi e consulenze</span><h1>Il supporto giusto,<br /><em>al tuo ritmo.</em></h1><p>Ogni incontro parte dall’ascolto e si costruisce sulle tue esigenze. Insieme definiamo i passi che hanno senso per te.</p></section><section className="path-list page-gutter">{services.map((item) => <article id={item.id} className="path-item" key={item.id}><span className="path-number">{item.no}</span><div className="path-main"><h2>{item.title}</h2><p>{item.intro}</p><span className="eyebrow">Cosa comprende</span><ul>{item.includes.map((line) => <li key={line}>{line}</li>)}</ul></div><div className="path-side"><p>Durata e modalità vengono concordate insieme in base al tipo di incontro.</p><Link className="text-link" href="/prenota">Chiedi informazioni <span aria-hidden="true">→</span></Link></div></article>)}</section><section className="note-panel page-gutter"><span className="eyebrow">Una nota importante</span><p>Il percorso non sostituisce valutazioni o terapie mediche. Quando necessario, il lavoro nutrizionale si integra con il confronto con gli altri professionisti che ti seguono.</p></section><section className="page-cta page-gutter"><h2>Hai qualche domanda<br /><em>prima di iniziare?</em></h2><Link className="button" href="/prenota">Scrivimi per parlarne <span aria-hidden="true">↗</span></Link></section></div>;
+}
