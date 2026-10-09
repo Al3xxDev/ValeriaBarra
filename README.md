@@ -1,79 +1,311 @@
-# Valeria Barra · Biologa Nutrizionista
+# Valeria Barra · Biologist Nutritionist
 
-Sito professionale e piccolo CMS per presentare i percorsi nutrizionali, pubblicare articoli e ricette e raccogliere richieste di appuntamento.
+[![Next.js](https://img.shields.io/badge/Next.js-16.0-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2-blue?style=flat-square&logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?style=flat-square&logo=prisma)](https://www.prisma.io/)
+[![Playwright](https://img.shields.io/badge/Playwright-E2E%20Testing-2EAD33?style=flat-square&logo=playwright)](https://playwright.dev/)
+[![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)](#license)
 
-## Stack
+> A modern, accessible, and privacy-first web platform and custom content management system (CMS) tailored for **Dott.ssa Valeria Barra**, Biologist Nutritionist in Salerno, Italy.
 
-- Next.js App Router con React e TypeScript strict.
-- PostgreSQL e Prisma con migrazioni versionate.
-- Zod per la validazione server-side; sessioni admin firmate con `jose`, password hashate con bcrypt.
-- Immagini su storage S3 compatibile, private fino alla pubblicazione autorizzata.
-- Invio email opzionale via Resend; nessuna credenziale nel repository.
+---
 
-## Avvio locale
+## Table of Contents
 
-Servono Node.js 20.9 o successivo, npm e Docker Compose.
+- [Overview](#overview)
+- [Key Features](#key-features)
+  - [Public Portal](#public-portal)
+  - [GDPR & Clinical Compliance Framework](#gdpr--clinical-compliance-framework)
+  - [Administrative Backoffice (`/admin`)](#administrative-backoffice-admin)
+  - [Media Processing Pipeline](#media-processing-pipeline)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Local Installation](#local-installation)
+  - [Default Development Credentials](#default-development-credentials)
+- [Environment Variables](#environment-variables)
+- [Database Operations](#database-operations)
+- [Testing & Quality Assurance](#testing--quality-assurance)
+- [Production Deployment](#production-deployment)
+- [Project Structure](#project-structure)
+- [Security & Compliance](#security--compliance)
+- [Contributing](#contributing)
+- [License](#license)
 
-1. Installa le dipendenze: `npm install`.
-2. Copia `.env.example` in `.env`.
-3. Avvia PostgreSQL: `docker compose up -d db`.
-4. Inizializza il database: `npm run db:deploy`.
-5. Carica i contenuti demo e l’account amministratore: `npm run db:seed`.
-6. Avvia il sito: `npm run dev` e apri <http://localhost:3000>.
+---
 
-L’account dimostrativo locale creato dal seed è `admin@valeriabarra.local` con password `change-this-development-password`. Cambialo prima di esporre l’ambiente a chiunque. Il seed aggiunge richieste, articoli e tre storie di esempio: una pubblicata con illustrazioni astratte, una bozza con consensi sintetici e una bozza senza consensi. Ogni storia demo è marcata nel pannello e nel sito; fixture e consensi dimostrativi non vengono inseriti quando `NODE_ENV=production`.
+## Overview
 
-## Variabili d’ambiente
+This repository houses the full-stack web application for the professional clinical practice of **Valeria Barra**. Built using Next.js App Router, React 19, and Prisma with PostgreSQL, the solution bridges a high-performance, SEO-optimized public portal with a robust administrative backoffice designed specifically for medical and nutritional practices.
 
-Necessarie in produzione:
+The platform is engineered around strict **privacy-by-design** principles: medical data is segregated from public booking forms, patient case studies require audited informed consent, and imagery is stripped of metadata and served exclusively through authenticated, access-controlled endpoints.
 
-- `DATABASE_URL`: URL PostgreSQL managed.
-- `AUTH_SECRET`: stringa casuale di almeno 32 caratteri; per generarne una, usa `openssl rand -hex 32`.
-- `ADMIN_EMAIL` e `ADMIN_PASSWORD`: credenziali iniziali dell’unico admin. La password viene salvata solo come hash.
-- `NEXT_PUBLIC_SITE_URL`: URL pubblico canonico, per metadata, sitemap e JSON-LD.
+---
 
-Facoltative:
+## Key Features
 
-- `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_TO`: inviano una notifica allo studio e una ricevuta al cliente. Senza queste variabili la prenotazione viene salvata normalmente e l’app non tenta l’invio.
-- `STORAGE_BUCKET`, `STORAGE_REGION`, `STORAGE_ENDPOINT`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`: bucket S3 compatibile per i media. Mantieni il bucket privato; il sito distribuisce un’immagine solo quando il contenuto collegato è pubblicato e, per le storie personali, quando sono registrati i consensi richiesti. In locale gli upload vengono conservati in `.private-media` con permessi limitati; in produzione lo storage S3 è obbligatorio. Gli upload accettano JPEG, PNG e WebP fino a 8 MB, vengono decodificati, ridimensionati e riconvertiti in WebP sul server, con rimozione dei metadati.
-- `NEXT_PUBLIC_GA_ID`: ID Google Analytics facoltativo. Lo script viene caricato solo dopo consenso; per impostazione predefinita non è configurato.
+### Public Portal
+- **Nutritional Pathways (`/percorsi`)**: Clear presentation of personalized dietary consulting, clinical nutrition plans, and habit re-education programs.
+- **Recipe & Editorial Hub (`/ricette`, `/news`)**: Nutritional articles, balanced recipes with nutritional facts, category filters, and search tags.
+- **Clinical Case Studies (`/prima-e-dopo`)**: Respectful and narrative-driven "Before & After" patient journey showcases.
+- **Appointment Booking Intake (`/prenota`)**: Multi-step booking intake with date/time preferences, appointment types, and explicit GDPR consent acceptance.
+- **SEO & Microdata**: Server-rendered pages with JSON-LD structured data (Schema.org `MedicalBusiness`, `Article`, `Recipe`), dynamic XML sitemaps (`/sitemap.xml`), and custom OpenGraph/Twitter social cards.
+- **Cookie & Consent Management**: Granular cookie banner allowing visitors to toggle analytics scripts without tracking non-consenting users.
 
-Le URL social, email, telefono, WhatsApp e i testi del profilo si modificano da **Admin → Impostazioni**. I link restano assenti finché non vengono inseriti recapiti reali.
+### GDPR & Clinical Compliance Framework
+- **Dual Informed Consent**: Separate, recorded consent flags for case narrative (`CONTENT`) and clinical imagery (`IMAGES`), complete with administrative physical archive references.
+- **Anonymization Assurance**: Mandatory verification that personal identifying details are stripped prior to case publication.
+- **Gated Media Delivery**: Patient images are **never** stored in public directories or served via open CDN URLs. All requests pass through `/api/media/[id]`, which verifies publication status and active consent before streaming bytes.
+- **Instant Consent Revocation**: Revoking patient consent immediately withdraws the story from the live website, marks the case as a draft, and unlinks associated media assets.
+- **Data Minimization in Intake Forms**: The booking form explicitly omits health/medical questions, preventing unnecessary exposure of sensitive clinical data prior to in-person consultation.
 
-## Database e admin
+### Administrative Backoffice (`/admin`)
+- **Booking Pipeline Management (`/admin/bookings`)**: Real-time management of consultation inquiries with structured status workflows (`NEW` → `CONTACTED` → `CONFIRMED` → `COMPLETED` / `CANCELLED` / `ARCHIVED`) and confidential practitioner notes.
+- **Content Management (`/admin/content`)**: Full authoring capabilities for editorial articles, recipes, and clinical journey cases.
+- **Practice Settings (`/admin/settings`)**: Dynamic configuration of contact phone numbers, WhatsApp direct links, studio address, social profiles, and biography copy.
+- **Hardened Authentication**: Stateless session management using `jose` signed JWT tokens stored in `HttpOnly`, `SameSite=Strict` secure cookies.
+- **Brute-Force Throttling**: PostgreSQL-backed `AuthThrottle` rate limiter that automatically blocks abusive IP/credential combinations.
+- **Origin & CSRF Protection**: Strict validation of request headers on all state-mutating API routes.
 
-- Modifica locale dello schema: `npm run db:migrate`.
-- Migrazioni in staging/produzione: `npm run db:deploy`.
-- Generazione del client: `npm run db:generate`.
-- Seed di sviluppo: `npm run db:seed`.
+### Media Processing Pipeline
+- **Sharp Image Transcoding**: Automated conversion of uploaded JPEG, PNG, and WebP images to modern WebP with optimal compression.
+- **EXIF & Metadata Stripping**: Complete removal of camera metadata, device serials, and GPS location tags to guarantee patient privacy.
+- **Storage Abstraction**: Seamless dual-adapter architecture supporting local private filesystem storage (`.private-media`) during development and S3-compatible cloud storage (AWS S3, Cloudflare R2, MinIO) in production.
 
-L’area `/admin` protegge pagine e API lato server, usa cookie HttpOnly/SameSite Strict e sessioni con scadenza, limita i tentativi di accesso con contatori PostgreSQL e controlla l’origine delle richieste mutative. La gestione include richieste, contenuti editoriali, ricette, casi con consenso e impostazioni del sito.
+---
 
-### Storie “Prima & Dopo”
+## Architecture & Tech Stack
 
-La pagina pubblica è `/prima-e-dopo`, con una pagina dettaglio per ogni slug. Il pannello **Admin → Contenuti → Storie di percorso** consente di creare e salvare bozze, caricare o rimuovere le due immagini, visualizzare un’anteprima privata, registrare o ritirare i consensi, pubblicare, archiviare ed eliminare. La pubblicazione richiede: obiettivo, due file immagine distinti e disponibili, testi alternativi, conferma di anonimizzazione, consenso al racconto e alle immagini. Quando si registra un nuovo consenso occorre aggiungere una nota privata che indichi dove è conservata la prova; la timeline mostra data e cambi di stato. Non inserire dati identificativi nelle note.
+| Layer | Technology | Description |
+| :--- | :--- | :--- |
+| **Framework** | [Next.js 16](https://nextjs.org/) | App Router architecture, Turbopack, React Server Components |
+| **UI Library** | [React 19](https://react.dev/) | Concurrent rendering, Server Actions, modern hook APIs |
+| **Language** | [TypeScript 5.9](https://www.typescriptlang.org/) | Strict type-safety across client and server layers |
+| **Database** | [PostgreSQL 17](https://www.postgresql.org/) | Robust relational database engine |
+| **ORM** | [Prisma 6](https://www.prisma.io/) | Type-safe schema definition and versioned SQL migrations |
+| **Validation** | [Zod 4](https://zod.dev/) | Strict runtime data validation for API payloads and form submissions |
+| **Authentication**| [jose](https://github.com/panva/jose) & [bcryptjs](https://github.com/dcodeIO/bcrypt.js) | Cryptographic JWT signing and secure salted password hashing |
+| **Image Engine** | [Sharp](https://sharp.pixelplumbing.com/) | High-performance raster image transformation |
+| **Cloud Storage** | [@aws-sdk/client-s3](https://aws.amazon.com/sdk-for-javascript/) | S3-compatible client for private media persistence |
+| **Email Service** | [Resend](https://resend.com/) | Transactional booking confirmations and studio alert dispatches |
+| **Testing** | [Playwright](https://playwright.dev/) & Node Test Runner | End-to-end browser tests, accessibility auditing (`axe-core`), and unit tests |
 
-Le immagini di casi personali vengono servite da `/api/media/[id]` solo se collegate a una storia pubblicata con i consensi attivi. La preview admin usa un endpoint separato autenticato. Ritirare un consenso rimuove immediatamente la storia dal sito, chiude le registrazioni precedenti e salva il caso come bozza. Eliminare o sostituire un’immagine scollega e rimuove dal bucket gli asset che non sono più usati da altri contenuti. `revalidatePath` aggiorna lista, dettaglio, Home e sitemap dopo le modifiche.
+---
 
-## Email e prenotazioni
+## Getting Started
 
-Il form non chiede dati sanitari. La richiesta viene salvata prima del tentativo email; un errore del provider non annulla la prenotazione. Gli stati sono `NEW`, `CONTACTED`, `CONFIRMED`, `CANCELLED`, `COMPLETED` e `ARCHIVED`. Le note interne non sono esposte nel sito pubblico.
+### Prerequisites
 
-## Controlli
+Ensure you have the following installed locally:
+- **Node.js**: `v20.9.0` or higher (Node 22 LTS recommended)
+- **npm**: `v10.0.0` or higher
+- **Docker & Docker Compose**: For running the local PostgreSQL container
 
-```sh
-npm run typecheck
-npm run lint
-npm test
-npm run build
+### Local Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/your-username/valeria-barra-nutrizionista.git
+   cd valeria-barra-nutrizionista
+   ```
+
+2. **Install project dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Configure environment variables**:
+   ```bash
+   cp .env.example .env
+   ```
+   *(Review `.env` and adjust variables if needed. Default values match the Docker Compose configuration).*
+
+4. **Start the local PostgreSQL container**:
+   ```bash
+   docker compose up -d db
+   ```
+
+5. **Run database migrations and seed demo data**:
+   ```bash
+   npm run db:deploy
+   npm run db:seed
+   ```
+
+6. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
+
+7. **Access the application**:
+   - Public Website: [http://localhost:3000](http://localhost:3000)
+   - Admin Backoffice: [http://localhost:3000/admin](http://localhost:3000/admin)
+
+### Default Development Credentials
+
+The local database seed script creates a default administrator account:
+- **Email**: `admin@valeriabarra.local`
+- **Password**: `change-this-development-password`
+
+> [!WARNING]
+> Always change default credentials before deploying to any staging or production environment.
+
+---
+
+## Environment Variables
+
+| Variable | Required | Default / Example | Purpose |
+| :--- | :---: | :--- | :--- |
+| `DATABASE_URL` | **Yes** | `postgresql://valeria:valeria@localhost:5432/valeria_barra?schema=public` | Connection string for PostgreSQL database. |
+| `AUTH_SECRET` | **Yes** | `openssl rand -hex 32` | Cryptographic key (min 32 chars) for signing session JWTs. |
+| `ADMIN_EMAIL` | **Yes** | `admin@valeriabarra.local` | Email address for the initial administrative account. |
+| `ADMIN_PASSWORD` | **Yes** | `change-this-development-password` | Initial password hashed and stored during database seed. |
+| `NEXT_PUBLIC_SITE_URL` | **Yes** | `http://localhost:3000` | Canonical site origin for OpenGraph, sitemaps, and robots.txt. |
+| `NEXT_PUBLIC_GA_ID` | No | `G-XXXXXXXXXX` | Optional Google Analytics 4 Measurement ID. |
+| `RESEND_API_KEY` | No | `re_...` | API key for transactional emails via Resend. |
+| `EMAIL_FROM` | No | `Valeria Barra <studio@example.it>` | Verified sender address for notifications. |
+| `EMAIL_TO` | No | `valeria@example.it` | Studio inbox for new appointment notifications. |
+| `STORAGE_LOCAL` | No | `true` | When `true`, saves media to `./.private-media` (dev only). |
+| `STORAGE_BUCKET` | Prod | `my-private-media-bucket` | Name of the private S3-compatible bucket. |
+| `STORAGE_ENDPOINT` | Prod | `https://s3.eu-central-1.amazonaws.com` | Optional custom endpoint (e.g., Cloudflare R2 / MinIO). |
+| `STORAGE_REGION` | Prod | `eu-central-1` | S3 bucket region. |
+| `STORAGE_ACCESS_KEY` | Prod | `AKIA...` | IAM access key with S3 read/write permissions. |
+| `STORAGE_SECRET_KEY` | Prod | `...` | IAM secret key corresponding to the access key. |
+
+---
+
+## Database Operations
+
+The project uses Prisma ORM with versioned SQL migrations located in `prisma/migrations/`.
+
+```bash
+# Generate the Prisma Client after schema changes
+npm run db:generate
+
+# Apply migrations and create new migration files (Development)
+npm run db:migrate
+
+# Apply pending migrations to production/staging (CI/CD)
+npm run db:deploy
+
+# Populate database with initial content and admin account
+npm run db:seed
 ```
 
-La suite browser usa Playwright e Chrome/Chromium. Indica il binario locale con `CHROME_BIN=/percorso/a/google-chrome npm run test:e2e`; richiede il database demo inizializzato. Il test end-to-end archivia la prenotazione che crea e rimuove l’articolo di verifica.
+---
 
-## Build e deployment
+## Testing & Quality Assurance
 
-Configura PostgreSQL managed e, se necessario, bucket privato e Resend. Imposta le variabili d’ambiente senza inserirle nel repository. In fase di rilascio esegui `npm run db:deploy`, crea l’admin con `NODE_ENV=production npm run db:seed`, quindi `npm run build` e `npm start`. Next.js può essere distribuito su Vercel o su un host Node compatibile; se usi serverless, scegli un pool PostgreSQL adatto alle funzioni e abilita la persistenza delle cache di revalidation.
+To ensure zero regressions, accessibility adherence, and type safety, run the verification suite:
 
-## Contenuti da finalizzare
+```bash
+# Run TypeScript compilation check
+npm run typecheck
 
-Le fotografie sono immagini editoriali segnaposto, non ritratti della professionista. Gli articoli e le ricette seed sono materiale di sviluppo: verificare copy, ricette e indicazioni nutrizionali con Valeria prima di pubblicarli. Privacy e cookie policy sono bozze operative e devono essere completate e validate da un professionista legale. Inserire il dominio pubblico e i recapiti reali prima del rilascio.
+# Run ESLint validation
+npm run lint
+
+# Run unit and validation test suite
+npm test
+
+# Run Playwright End-to-End and accessibility tests
+npm run test:e2e
+```
+
+*Note: For headless Playwright runs on custom environments, specify your browser binary via `CHROME_BIN=/usr/bin/google-chrome npm run test:e2e`.*
+
+---
+
+## Production Deployment
+
+### 1. Build Verification
+Before deploying, execute a local production build to verify bundle compilation:
+```bash
+npm run build
+npm start
+```
+
+### 2. Deployment Architecture
+- **Web Layer**: Can be hosted on [Vercel](https://vercel.com/), AWS ECS, Railway, Fly.io, or any Node.js container platform.
+- **Database**: Managed PostgreSQL instance (AWS RDS, Supabase, Neon, Neon with Prisma connection pooling).
+- **Object Storage**: Private AWS S3 bucket, Cloudflare R2, or Wasabi with strict private access policies. Ensure the bucket does **not** grant public read access.
+
+### 3. Production Release Checklist
+1. Apply database migrations: `npm run db:deploy`.
+2. Seed administrative credentials once: `NODE_ENV=production npm run db:seed`.
+3. Set high-entropy `AUTH_SECRET` generated with `openssl rand -hex 32`.
+4. Configure production `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY`, and `STORAGE_SECRET_KEY` with `STORAGE_LOCAL="false"`.
+5. Set `NEXT_PUBLIC_SITE_URL` to the public production domain (e.g., `https://www.valeriabarra.it`).
+6. Complete legal review of the Privacy Policy and Cookie Policy texts prior to public launch.
+
+---
+
+## Project Structure
+
+```text
+├── .github/                  # CI/CD workflows and GitHub issue/PR templates
+│   ├── workflows/ci.yml      # Automated GitHub Actions test & build pipeline
+│   ├── ISSUE_TEMPLATE/       # Structured bug report & feature request templates
+│   └── PULL_REQUEST_TEMPLATE.md
+├── prisma/                   # Database schema, seed data, and SQL migrations
+│   ├── migrations/           # Versioned PostgreSQL migration scripts
+│   ├── schema.prisma         # Declarative Prisma schema definition
+│   └── seed.ts               # Database seeder for demo fixtures & admin user
+├── public/                   # Static public assets (brand marks, favicons, placeholders)
+│   ├── brand/                # Vector logos, seals, social cards, app icons
+│   └── images/               # Abstract demo illustrations and placeholders
+├── scripts/                  # Standalone build utilities (asset generation)
+├── src/
+│   ├── app/                  # Next.js App Router pages and API routes
+│   │   ├── (public)/         # Public clinical pages (/percorsi, /ricette, /news, etc.)
+│   │   ├── admin/            # Administrative backoffice routes and sub-pages
+│   │   ├── api/              # Secure API route handlers (admin, media, bookings)
+│   │   ├── layout.tsx        # Root HTML layout with SEO metadata and cookie provider
+│   │   ├── robots.ts         # Dynamic robots.txt generator
+│   │   └── sitemap.ts        # Dynamic XML sitemap generator
+│   ├── components/           # Reusable React components (forms, navigation, UI)
+│   └── lib/                  # Core backend business logic, validation, and utilities
+│       ├── auth.ts           # JWT session issuance and cookie validation
+│       ├── before-after*.ts  # Clinical journey validation, views, and consent logic
+│       ├── booking-validation.ts # Zod schema for appointment requests
+│       ├── media-storage.ts  # Sharp processing and S3/Local storage adapter
+│       ├── prisma.ts         # Prisma Client singleton
+│       └── rate-limit.ts     # Brute-force throttling logic
+├── tests/                    # Unit, validation, and Playwright E2E test suites
+│   ├── e2e/site.spec.ts      # End-to-end browser tests
+│   └── validation.test.ts    # Zod schemas and business logic assertions
+├── .env.example              # Documented environment variable template
+├── .gitattributes            # Line ending normalization and asset rules
+├── .gitignore                # Comprehensive Git ignore rules
+├── docker-compose.yml        # Local PostgreSQL container definition
+├── next.config.ts            # Next.js configuration
+├── package.json              # Project dependencies and script declarations
+└── tsconfig.json             # TypeScript compiler configuration
+```
+
+---
+
+## Security & Compliance
+
+For details on reporting vulnerabilities, built-in security architecture, and patient data safeguards, please review [SECURITY.md](SECURITY.md).
+
+Key security controls implemented:
+- **Zero Medical Data in Intake**: Forms collect strictly non-clinical contact details.
+- **Audited Patient Consent**: Consent states are recorded with physical paperwork cross-references.
+- **Cryptographic JWTs & HttpOnly Cookies**: Protection against XSS session hijacking.
+- **Rate-Limited Authentication**: Brute-force protection via PostgreSQL-backed counters.
+- **Metadata Scrubbing**: Automated stripping of EXIF data on all media uploads.
+
+---
+
+## Contributing
+
+Contributions, bug reports, and enhancements are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, conventional commit standards, and the pull request process.
+
+---
+
+## License
+
+Copyright © 2026 **Dott.ssa Valeria Barra**. All rights reserved.  
+Proprietary software developed for professional practice. Unauthorized copying, modification, or distribution is strictly prohibited. See [LICENSE](LICENSE) for details.
