@@ -17,8 +17,10 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: { canonical: "/" },
     icons: {
       icon: [
-        { url: "/icon.svg", type: "image/svg+xml" },
+        { url: "/favicon.ico", sizes: "32x32" },
         { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+        { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+        { url: "/favicon.svg", type: "image/svg+xml" },
       ],
       apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     },
@@ -27,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: "it_IT",
       siteName: `${settings.name} · ${settings.qualification}`,
       images: [
-        { url: "/og-image.png", width: 1200, height: 630, alt: `${settings.name} · ${settings.qualification} a ${settings.city}` },
+        { url: "/og-image.png", width: 1200, height: 630, alt: `${settings.name} · ${settings.qualification} a ${settings.city} — "Eat well, you live better"` },
       ],
     },
     twitter: { card: "summary_large_image" },

@@ -94,7 +94,7 @@ async function main() {
     create: { ...consent, granted: true, recordedAt: demoRecordedAt },
     update: { ...consent, granted: true, recordedAt: demoRecordedAt, withdrawnAt: null },
   });
-  await prisma.siteSettings.upsert({ where: { id: "main" }, create: { id: "main", name: "Valeria Barra", qualification: "Biologa Nutrizionista", shortBio: "Un percorso nutrizionale costruito intorno alla tua vita, con ascolto e consapevolezza.", city: "Salerno" }, update: {} });
+  await prisma.siteSettings.upsert({ where: { id: "main" }, create: { id: "main", name: "Valeria Barra", qualification: "Biologa Nutrizionista", shortBio: "Biologa Nutrizionista abilitata e laureata in Farmacia. Percorsi nutrizionali costruiti intorno alla tua vita, con ascolto e rigore scientifico.", city: "Salerno" }, update: { shortBio: "Biologa Nutrizionista abilitata e laureata in Farmacia. Percorsi nutrizionali costruiti intorno alla tua vita, con ascolto e rigore scientifico." } });
 
   for (const i of [1, 2, 3]) {
     const demoId = `demo-booking-${i}`;

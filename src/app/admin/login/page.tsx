@@ -9,7 +9,7 @@ export default async function AdminLoginPage() {
   return (
     <div className="admin-login-page">
       <Link className="admin-login-brand" href="/" aria-label="Valeria Barra Studio">
-        <BrandMark className="admin-login-mark" aria-hidden="true" />
+        <BrandMark className="admin-login-mark" variant="badge" aria-hidden="true" />
         <span className="admin-login-brand-text">
           <strong>Valeria Barra</strong>
           <span>Studio</span>

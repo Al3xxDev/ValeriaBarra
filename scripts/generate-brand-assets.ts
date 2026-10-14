@@ -1,322 +1,186 @@
-import fs from "fs";
-import path from "path";
 import sharp from "sharp";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 const rootDir = process.cwd();
-const publicDir = path.join(rootDir, "public");
-const brandDir = path.join(publicDir, "brand");
-const logoDir = path.join(brandDir, "logo");
-const iconsDir = path.join(brandDir, "icons");
-const faviconDir = path.join(brandDir, "favicon");
-const socialDir = path.join(brandDir, "social");
-
-// Ensure directories exist
-for (const dir of [brandDir, logoDir, iconsDir, faviconDir, socialDir]) {
-  fs.mkdirSync(dir, { recursive: true });
-}
-
-// ---------------------------------------------------------------------------
-// 1. CORE VECTOR PATH DEFINITIONS
-// ---------------------------------------------------------------------------
-
-// The canonical VB Monogram geometry (100x100 coordinate system, optically centered at 50,50)
-function getMarkPath(stroke = "currentColor", strokeWidth = "5.4") {
-  return `
-    <g fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 20,27 L 36,73 L 52,27"/>
-      <path d="M 52,27 L 52,73"/>
-      <path d="M 52,27 C 67,27 76,33 76,44 C 76,48 72,50 65,50 L 52,50"/>
-      <path d="M 52,50 L 68,50 C 76,50 80,53 80,62 C 80,71 72,73 52,73"/>
-    </g>
-  `;
-}
-
-// The circular seal geometry (120x120 coordinate system)
-function getSealSvg(
-  bg = "transparent",
-  ringColor = "#304d3f",
-  innerRingColor = "#dce3d8",
-  markColor = "#304d3f",
-  dotColor = "#bd775d"
-) {
-  return `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
-  ${bg !== "transparent" ? `<rect width="120" height="120" rx="60" fill="${bg}"/>` : ""}
-  <circle cx="60" cy="60" r="54" fill="none" stroke="${ringColor}" stroke-width="1.8"/>
-  <circle cx="60" cy="60" r="49" fill="none" stroke="${innerRingColor}" stroke-width="0.8"/>
-  <circle cx="60" cy="9.5" r="1.4" fill="${dotColor}"/>
-  <circle cx="60" cy="110.5" r="1.4" fill="${dotColor}"/>
-  <circle cx="9.5" cy="60" r="1.4" fill="${dotColor}"/>
-  <circle cx="110.5" cy="60" r="1.4" fill="${dotColor}"/>
-  <g transform="translate(18, 18) scale(0.84)">
-    ${getMarkPath(markColor, "5.6")}
-  </g>
-</svg>
-`.trim();
-}
-
-// ---------------------------------------------------------------------------
-// 2. ICON MARKS (SVG)
-// ---------------------------------------------------------------------------
-
-// Clean standalone icon mark
-const logoMarkSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  ${getMarkPath("#304d3f", "5.4")}
-</svg>
-`.trim();
-
-const logoMarkLightSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  ${getMarkPath("#f7f6f0", "5.4")}
-</svg>
-`.trim();
-
-const logoMarkMonochromeSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  ${getMarkPath("#26372f", "5.4")}
-</svg>
-`.trim();
-
-// Badge / Seal SVGs
-const logoMarkBadgeSvg = getSealSvg("transparent", "#304d3f", "#dce3d8", "#304d3f", "#bd775d");
-const logoMarkBadgeDarkSvg = getSealSvg("transparent", "#f7f6f0", "rgba(255,255,255,0.3)", "#f7f6f0", "#dce3d8");
-
-// ---------------------------------------------------------------------------
-// 3. LOGO LOCKUPS (SVG)
-// ---------------------------------------------------------------------------
-
-// Primary Horizontal Logo
-const logoPrimarySvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 90" width="380" height="90">
-  <g transform="translate(16, 17) scale(0.56)">
-    ${getMarkPath("#304d3f", "6")}
-  </g>
-  <line x1="84" y1="26" x2="84" y2="64" stroke="#d5dbd0" stroke-width="1"/>
-  <text x="98" y="44" fill="#26372f" font-family="'Iowan Old Style', 'Baskerville Old Face', Georgia, serif" font-size="24" font-weight="400" letter-spacing="-0.5">Valeria Barra</text>
-  <text x="99" y="59" fill="#536156" font-family="'Avenir Next', Avenir, 'Segoe UI', sans-serif" font-size="8.5" font-weight="600" letter-spacing="1.8">BIOLOGA NUTRIZIONISTA</text>
-</svg>
-`.trim();
-
-// Primary Dark Horizontal Logo
-const logoPrimaryDarkSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 90" width="380" height="90">
-  <g transform="translate(16, 17) scale(0.56)">
-    ${getMarkPath("#f7f6f0", "6")}
-  </g>
-  <line x1="84" y1="26" x2="84" y2="64" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-  <text x="98" y="44" fill="#f7f6f0" font-family="'Iowan Old Style', 'Baskerville Old Face', Georgia, serif" font-size="24" font-weight="400" letter-spacing="-0.5">Valeria Barra</text>
-  <text x="99" y="59" fill="#c8d2c6" font-family="'Avenir Next', Avenir, 'Segoe UI', sans-serif" font-size="8.5" font-weight="600" letter-spacing="1.8">BIOLOGA NUTRIZIONISTA</text>
-</svg>
-`.trim();
-
-// Compact Horizontal Logo (Symbol + Name)
-const logoCompactSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 70" width="270" height="70">
-  <g transform="translate(12, 11) scale(0.48)">
-    ${getMarkPath("#304d3f", "6.2")}
-  </g>
-  <line x1="72" y1="20" x2="72" y2="50" stroke="#d5dbd0" stroke-width="1"/>
-  <text x="84" y="43" fill="#26372f" font-family="'Iowan Old Style', 'Baskerville Old Face', Georgia, serif" font-size="23" font-weight="400" letter-spacing="-0.5">Valeria Barra</text>
-</svg>
-`.trim();
-
-const logoCompactDarkSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 70" width="270" height="70">
-  <g transform="translate(12, 11) scale(0.48)">
-    ${getMarkPath("#f7f6f0", "6.2")}
-  </g>
-  <line x1="72" y1="20" x2="72" y2="50" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-  <text x="84" y="43" fill="#f7f6f0" font-family="'Iowan Old Style', 'Baskerville Old Face', Georgia, serif" font-size="23" font-weight="400" letter-spacing="-0.5">Valeria Barra</text>
-</svg>
-`.trim();
-
-// Vertical Stacked Logo
-const logoVerticalSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 190" width="240" height="190">
-  <g transform="translate(85, 16) scale(0.7)">
-    ${getMarkPath("#304d3f", "5.6")}
-  </g>
-  <line x1="90" y1="100" x2="150" y2="100" stroke="#d5dbd0" stroke-width="1"/>
-  <text x="120" y="128" text-anchor="middle" fill="#26372f" font-family="'Iowan Old Style', 'Baskerville Old Face', Georgia, serif" font-size="23" font-weight="400" letter-spacing="-0.5">Valeria Barra</text>
-  <text x="120" y="146" text-anchor="middle" fill="#536156" font-family="'Avenir Next', Avenir, 'Segoe UI', sans-serif" font-size="8" font-weight="600" letter-spacing="1.8">BIOLOGA NUTRIZIONISTA</text>
-  <text x="120" y="162" text-anchor="middle" fill="#9da79c" font-family="'Avenir Next', Avenir, 'Segoe UI', sans-serif" font-size="7" font-weight="500" letter-spacing="1.2">SALERNO</text>
-</svg>
-`.trim();
-
-const logoVerticalDarkSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 190" width="240" height="190">
-  <g transform="translate(85, 16) scale(0.7)">
-    ${getMarkPath("#f7f6f0", "5.6")}
-  </g>
-  <line x1="90" y1="100" x2="150" y2="100" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-  <text x="120" y="128" text-anchor="middle" fill="#f7f6f0" font-family="'Iowan Old Style', 'Baskerville Old Face', Georgia, serif" font-size="23" font-weight="400" letter-spacing="-0.5">Valeria Barra</text>
-  <text x="120" y="146" text-anchor="middle" fill="#c8d2c6" font-family="'Avenir Next', Avenir, 'Segoe UI', sans-serif" font-size="8" font-weight="600" letter-spacing="1.8">BIOLOGA NUTRIZIONISTA</text>
-  <text x="120" y="162" text-anchor="middle" fill="#8c978b" font-family="'Avenir Next', Avenir, 'Segoe UI', sans-serif" font-size="7" font-weight="500" letter-spacing="1.2">SALERNO</text>
-</svg>
-`.trim();
-
-// Monochrome Versions (100% single color)
-const logoMonochromeDarkSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 90" width="380" height="90">
-  <g transform="translate(16, 17) scale(0.56)">
-    ${getMarkPath("#26372f", "6")}
-  </g>
-  <line x1="84" y1="26" x2="84" y2="64" stroke="#26372f" stroke-width="1"/>
-  <text x="98" y="44" fill="#26372f" font-family="'Iowan Old Style', 'Baskerville Old Face', Georgia, serif" font-size="24" font-weight="400" letter-spacing="-0.5">Valeria Barra</text>
-  <text x="99" y="59" fill="#26372f" font-family="'Avenir Next', Avenir, 'Segoe UI', sans-serif" font-size="8.5" font-weight="600" letter-spacing="1.8">BIOLOGA NUTRIZIONISTA</text>
-</svg>
-`.trim();
-
-const logoMonochromeLightSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 90" width="380" height="90">
-  <g transform="translate(16, 17) scale(0.56)">
-    ${getMarkPath("#ffffff", "6")}
-  </g>
-  <line x1="84" y1="26" x2="84" y2="64" stroke="#ffffff" stroke-width="1"/>
-  <text x="98" y="44" fill="#ffffff" font-family="'Iowan Old Style', 'Baskerville Old Face', Georgia, serif" font-size="24" font-weight="400" letter-spacing="-0.5">Valeria Barra</text>
-  <text x="99" y="59" fill="#ffffff" font-family="'Avenir Next', Avenir, 'Segoe UI', sans-serif" font-size="8.5" font-weight="600" letter-spacing="1.8">BIOLOGA NUTRIZIONISTA</text>
-</svg>
-`.trim();
-
-// ---------------------------------------------------------------------------
-// 4. FAVICON & APP ICON (SVG)
-// ---------------------------------------------------------------------------
-
-// High contrast circular badge for browser tab (visible on both dark & light chrome)
-const faviconSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <circle cx="32" cy="32" r="30" fill="#304d3f"/>
-  <circle cx="32" cy="32" r="27.5" fill="none" stroke="#dce3d8" stroke-width="0.8"/>
-  <g transform="translate(12.5, 12.5) scale(0.39)">
-    ${getMarkPath("#f7f6f0", "7.5")}
-  </g>
-</svg>
-`.trim();
-
-// Apple Touch Icon SVG base (180x180)
-const appleTouchSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
-  <rect width="180" height="180" rx="36" fill="#304d3f"/>
-  <circle cx="90" cy="90" r="74" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-  <circle cx="90" cy="90" r="68" fill="none" stroke="rgba(220,227,216,0.3)" stroke-width="0.8"/>
-  <!-- Cardinal dots -->
-  <circle cx="90" cy="20" r="2.2" fill="#bd775d"/>
-  <circle cx="90" cy="160" r="2.2" fill="#bd775d"/>
-  <circle cx="20" cy="90" r="2.2" fill="#bd775d"/>
-  <circle cx="160" cy="90" r="2.2" fill="#bd775d"/>
-  <g transform="translate(38, 38) scale(1.04)">
-    ${getMarkPath("#f7f6f0", "5.6")}
-  </g>
-</svg>
-`.trim();
-
-// ---------------------------------------------------------------------------
-// 5. SOCIAL & OPEN GRAPH (1200x630 & 1024x1024)
-// ---------------------------------------------------------------------------
-
-const ogImageSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
-  <rect width="1200" height="630" fill="#f7f6f0"/>
-  <!-- Decorative perimeter double border -->
-  <rect x="36" y="36" width="1128" height="558" fill="none" stroke="#304d3f" stroke-width="1.8"/>
-  <rect x="44" y="44" width="1112" height="542" fill="none" stroke="#dce3d8" stroke-width="0.8"/>
-  <!-- Corner terracotta accents -->
-  <circle cx="36" cy="36" r="3.5" fill="#bd775d"/>
-  <circle cx="1164" cy="36" r="3.5" fill="#bd775d"/>
-  <circle cx="36" cy="594" r="3.5" fill="#bd775d"/>
-  <circle cx="1164" cy="594" r="3.5" fill="#bd775d"/>
-
-  <!-- Left: Emblem Seal -->
-  <g transform="translate(120, 195) scale(2)">
-    ${getSealSvg("transparent", "#304d3f", "#dce3d8", "#304d3f", "#bd775d")}
-  </g>
-
-  <!-- Divider -->
-  <line x1="420" y1="180" x2="420" y2="450" stroke="#d5dbd0" stroke-width="1.2"/>
-
-  <!-- Right: Typography -->
-  <g transform="translate(470, 0)">
-    <text x="0" y="240" fill="#536156" font-family="'Avenir Next', Avenir, 'Segoe UI', sans-serif" font-size="16" font-weight="600" letter-spacing="3.5">STUDIO NUTRIZIONALE · SALERNO</text>
-    <text x="0" y="325" fill="#26372f" font-family="'Iowan Old Style', 'Baskerville Old Face', Georgia, serif" font-size="74" font-weight="400" letter-spacing="-1.5">Valeria Barra</text>
-    <text x="0" y="375" fill="#304d3f" font-family="'Avenir Next', Avenir, 'Segoe UI', sans-serif" font-size="22" font-weight="600" letter-spacing="3">BIOLOGA NUTRIZIONISTA</text>
-    <text x="0" y="440" fill="#70796e" font-family="'Iowan Old Style', 'Baskerville Old Face', Georgia, serif" font-size="22" font-style="italic">Un percorso consapevole, concreto e costruito intorno alla persona.</text>
-  </g>
-</svg>
-`.trim();
-
-const avatarSquareSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <rect width="1024" height="1024" fill="#f7f6f0"/>
-  <g transform="translate(112, 112) scale(6.666)">
-    ${getSealSvg("transparent", "#304d3f", "#dce3d8", "#304d3f", "#bd775d")}
-  </g>
-</svg>
-`.trim();
-
-// ---------------------------------------------------------------------------
-// 6. GENERATION & EXPORT ROUTINE
-// ---------------------------------------------------------------------------
+const source = path.join(rootDir, "public/images/logo.jpeg");
 
 async function main() {
-  console.log("Generating vector SVG assets...");
+  const meta = await sharp(source).metadata();
+  console.log(`Source image: ${source} (${meta.width}x${meta.height})`);
 
-  // Save Icon Marks
-  fs.writeFileSync(path.join(iconsDir, "logo-mark.svg"), logoMarkSvg);
-  fs.writeFileSync(path.join(iconsDir, "logo-mark-light.svg"), logoMarkLightSvg);
-  fs.writeFileSync(path.join(iconsDir, "logo-mark-monochrome.svg"), logoMarkMonochromeSvg);
-  fs.writeFileSync(path.join(iconsDir, "logo-mark-badge.svg"), logoMarkBadgeSvg);
-  fs.writeFileSync(path.join(iconsDir, "logo-mark-badge-dark.svg"), logoMarkBadgeDarkSvg);
+  // Ensure directories exist
+  await fs.mkdir(path.join(rootDir, "public/brand/logo"), { recursive: true });
+  await fs.mkdir(path.join(rootDir, "public/brand/icons"), { recursive: true });
+  await fs.mkdir(path.join(rootDir, "public/brand/favicon"), { recursive: true });
+  await fs.mkdir(path.join(rootDir, "public/brand/social"), { recursive: true });
 
-  // Save Logos
-  fs.writeFileSync(path.join(logoDir, "logo-primary.svg"), logoPrimarySvg);
-  fs.writeFileSync(path.join(logoDir, "logo-primary-dark.svg"), logoPrimaryDarkSvg);
-  fs.writeFileSync(path.join(logoDir, "logo-compact.svg"), logoCompactSvg);
-  fs.writeFileSync(path.join(logoDir, "logo-compact-dark.svg"), logoCompactDarkSvg);
-  fs.writeFileSync(path.join(logoDir, "logo-vertical.svg"), logoVerticalSvg);
-  fs.writeFileSync(path.join(logoDir, "logo-vertical-dark.svg"), logoVerticalDarkSvg);
-  fs.writeFileSync(path.join(logoDir, "logo-monochrome.svg"), logoMonochromeDarkSvg);
-  fs.writeFileSync(path.join(logoDir, "logo-monochrome-light.svg"), logoMonochromeLightSvg);
+  // 1. Full logo.jpeg in WebP and PNG
+  console.log("1. Generating full logo.jpeg in webp and png...");
+  await sharp(source).webp({ quality: 95 }).toFile(path.join(rootDir, "public/brand/logo/logo-full.webp"));
+  await sharp(source).png().toFile(path.join(rootDir, "public/brand/logo/logo-full.png"));
+  await sharp(source).toFile(path.join(rootDir, "public/brand/logo/logo-official.png"));
+  await sharp(source).webp({ quality: 95 }).toFile(path.join(rootDir, "public/brand/logo/logo-official.webp"));
 
-  // Save Favicons (SVG)
-  fs.writeFileSync(path.join(faviconDir, "favicon.svg"), faviconSvg);
-  fs.writeFileSync(path.join(publicDir, "favicon.svg"), faviconSvg);
-  fs.writeFileSync(path.join(rootDir, "src/app/icon.svg"), faviconSvg);
+  // 2. Square Avatar (800x800) featuring full logo.jpeg
+  console.log("2. Generating square avatar with full logo.jpeg...");
+  const fullLogoForSquare = await sharp(source)
+    .resize(600, 734, { fit: "contain", background: { r: 247, g: 246, b: 240, alpha: 1 } })
+    .png()
+    .toBuffer();
 
-  console.log("Generating raster PNG and ICO assets using sharp...");
+  await sharp({
+    create: {
+      width: 800,
+      height: 800,
+      channels: 4,
+      background: { r: 247, g: 246, b: 240, alpha: 1 }
+    }
+  })
+  .composite([{ input: fullLogoForSquare, gravity: "center" }])
+  .png()
+  .toFile(path.join(rootDir, "public/brand/social/avatar-square.png"));
 
-  // Favicon PNGs
-  const faviconBuffer = Buffer.from(faviconSvg);
-  const fav16 = await sharp(faviconBuffer).resize(16, 16).png().toBuffer();
-  const fav32 = await sharp(faviconBuffer).resize(32, 32).png().toBuffer();
-  const fav48 = await sharp(faviconBuffer).resize(48, 48).png().toBuffer();
+  // 3. Apple Touch Icon (180x180) featuring full logo.jpeg
+  console.log("3. Generating apple-touch-icon with full logo.jpeg...");
+  const fullLogoForApple = await sharp(source)
+    .resize(130, 159, { fit: "contain", background: { r: 247, g: 246, b: 240, alpha: 1 } })
+    .png()
+    .toBuffer();
 
-  fs.writeFileSync(path.join(faviconDir, "favicon-16.png"), fav16);
-  fs.writeFileSync(path.join(faviconDir, "favicon-32.png"), fav32);
-  fs.writeFileSync(path.join(faviconDir, "favicon-48.png"), fav48);
-  fs.writeFileSync(path.join(publicDir, "favicon-32.png"), fav32);
+  await sharp({
+    create: {
+      width: 180,
+      height: 180,
+      channels: 4,
+      background: { r: 247, g: 246, b: 240, alpha: 1 }
+    }
+  })
+  .composite([{ input: fullLogoForApple, gravity: "center" }])
+  .png()
+  .toFile(path.join(rootDir, "public/apple-touch-icon.png"));
 
-  // Simple clean .ico generation (valid 32x32 PNG header as modern ICO standard)
-  fs.writeFileSync(path.join(publicDir, "favicon.ico"), fav32);
+  await sharp(path.join(rootDir, "public/apple-touch-icon.png"))
+    .toFile(path.join(rootDir, "public/brand/favicon/apple-touch-icon.png"));
 
-  // Apple Touch Icon
-  const appleBuffer = Buffer.from(appleTouchSvg);
-  await sharp(appleBuffer).resize(180, 180).png().toFile(path.join(faviconDir, "apple-touch-icon.png"));
-  await sharp(appleBuffer).resize(180, 180).png().toFile(path.join(publicDir, "apple-touch-icon.png"));
+  // 4. PWA Icons (192 and 512) featuring full logo.jpeg
+  console.log("4. Generating PWA icons with full logo.jpeg...");
+  for (const size of [192, 512]) {
+    const logoH = Math.round(size * 0.88);
+    const logoW = Math.round(logoH * (928 / 1135));
+    const fullLogoPwa = await sharp(source)
+      .resize(logoW, logoH, { fit: "contain", background: { r: 247, g: 246, b: 240, alpha: 1 } })
+      .png()
+      .toBuffer();
 
-  // PWA Icons
-  await sharp(appleBuffer).resize(192, 192).png().toFile(path.join(faviconDir, "icon-192.png"));
-  await sharp(appleBuffer).resize(512, 512).png().toFile(path.join(faviconDir, "icon-512.png"));
+    await sharp({
+      create: {
+        width: size,
+        height: size,
+        channels: 4,
+        background: { r: 247, g: 246, b: 240, alpha: 1 }
+      }
+    })
+    .composite([{ input: fullLogoPwa, gravity: "center" }])
+    .png()
+    .toFile(path.join(rootDir, `public/brand/favicon/icon-${size}.png`));
+  }
 
-  // Social Assets
-  const ogBuffer = Buffer.from(ogImageSvg);
-  await sharp(ogBuffer).resize(1200, 630).png().toFile(path.join(socialDir, "og-image.png"));
-  await sharp(ogBuffer).resize(1200, 630).png().toFile(path.join(publicDir, "og-image.png"));
+  // 5. Favicon 32x32, 16x16 and favicon.ico featuring full logo.jpeg
+  console.log("5. Generating favicons with full logo.jpeg...");
+  const favH = 30;
+  const favW = Math.round(favH * (928 / 1135));
+  const fullLogoFav32 = await sharp(source)
+    .resize(favW, favH, { fit: "contain", background: { r: 247, g: 246, b: 240, alpha: 1 } })
+    .png()
+    .toBuffer();
 
-  const avatarBuffer = Buffer.from(avatarSquareSvg);
-  await sharp(avatarBuffer).resize(1024, 1024).png().toFile(path.join(socialDir, "avatar-square.png"));
+  await sharp({
+    create: {
+      width: 32,
+      height: 32,
+      channels: 4,
+      background: { r: 247, g: 246, b: 240, alpha: 1 }
+    }
+  })
+  .composite([{ input: fullLogoFav32, gravity: "center" }])
+  .png()
+  .toFile(path.join(rootDir, "public/favicon-32.png"));
 
-  console.log("All brand assets successfully generated in /public/brand/ and /public/");
+  await sharp(path.join(rootDir, "public/favicon-32.png")).toFile(path.join(rootDir, "public/favicon-32x32.png"));
+  await sharp(path.join(rootDir, "public/favicon-32.png")).toFile(path.join(rootDir, "public/brand/favicon/favicon-32.png"));
+
+  await sharp(path.join(rootDir, "public/favicon-32.png"))
+    .resize(16, 16)
+    .toFile(path.join(rootDir, "public/favicon-16.png"));
+  await sharp(path.join(rootDir, "public/favicon-16.png")).toFile(path.join(rootDir, "public/favicon-16x16.png"));
+  await sharp(path.join(rootDir, "public/favicon-16.png")).toFile(path.join(rootDir, "public/brand/favicon/favicon-16.png"));
+
+  await sharp(path.join(rootDir, "public/favicon-32.png")).toFile(path.join(rootDir, "public/favicon.ico"));
+
+  // 6. Favicon SVG embedding the full logo.jpeg as base64
+  console.log("6. Generating favicon.svg with full logo.jpeg...");
+  const fullLogoFav64 = await sharp(source)
+    .resize(52, 64, { fit: "contain", background: { r: 247, g: 246, b: 240, alpha: 1 } })
+    .png()
+    .toBuffer();
+  const fullLogoBase64 = fullLogoFav64.toString("base64");
+
+  const svgFavicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="12" fill="#f7f6f0"/>
+    <image href="data:image/png;base64,${fullLogoBase64}" x="6" y="0" width="52" height="64"/>
+  </svg>`.trim();
+
+  await fs.writeFile(path.join(rootDir, "public/favicon.svg"), svgFavicon, "utf-8");
+  await fs.writeFile(path.join(rootDir, "public/brand/favicon/favicon.svg"), svgFavicon, "utf-8");
+  await fs.writeFile(path.join(rootDir, "src/app/icon.svg"), svgFavicon, "utf-8");
+
+  // 7. OpenGraph Social Share Card (1200 x 630) featuring full logo.jpeg in its entirety
+  console.log("7. Generating OpenGraph card (1200x630) with full logo.jpeg...");
+  const ogLogoH = 490;
+  const ogLogoW = Math.round(ogLogoH * (928 / 1135));
+  const fullLogoForOg = await sharp(source)
+    .resize(ogLogoW, ogLogoH, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } })
+    .png()
+    .toBuffer();
+
+  const ogCardSvg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+    <rect width="1200" height="630" fill="#f7f6f0"/>
+    <rect x="28" y="28" width="1144" height="574" fill="none" stroke="#dce3d8" stroke-width="1.5"/>
+    <rect x="36" y="36" width="1128" height="558" fill="none" stroke="#eaeee7" stroke-width="1"/>
+
+    <!-- Left side card framing the full logo -->
+    <rect x="75" y="65" width="${ogLogoW + 40}" height="${ogLogoH + 35}" rx="6" fill="#ffffff" stroke="#e0e4dc" stroke-width="1"/>
+
+    <!-- Right side typography -->
+    <g transform="translate(${75 + ogLogoW + 80}, 165)">
+      <text x="0" y="0" font-family="serif, Georgia" font-size="14" font-weight="600" letter-spacing="3" fill="#89533f" text-transform="uppercase">STUDIO PROFESSIONALE · SALERNO</text>
+      
+      <text x="0" y="65" font-family="serif, Georgia" font-size="50" font-weight="400" letter-spacing="-1" fill="#22392e">Dott.ssa Valeria Barra</text>
+      
+      <text x="0" y="112" font-family="sans-serif, system-ui" font-size="20" font-weight="600" letter-spacing="3" fill="#536156" text-transform="uppercase">BIOLOGA NUTRIZIONISTA</text>
+      <text x="0" y="142" font-family="sans-serif, system-ui" font-size="16" font-weight="400" letter-spacing="1" fill="#6d7a6e">Laureata in Farmacia</text>
+
+      <line x1="0" y1="180" x2="160" y2="180" stroke="#bd775d" stroke-width="2"/>
+
+      <text x="0" y="230" font-family="serif, Georgia" font-size="24" font-style="italic" fill="#304d3f">"Eat well, you live better"</text>
+
+      <text x="0" y="280" font-family="sans-serif, system-ui" font-size="17" fill="#536156">Percorsi nutrizionali costruiti con ascolto,</text>
+      <text x="0" y="307" font-family="sans-serif, system-ui" font-size="17" fill="#536156">competenze scientifiche e attenzione alla vita reale.</text>
+    </g>
+  </svg>`;
+
+  const ogCardBase = await sharp(Buffer.from(ogCardSvg)).png().toBuffer();
+  await sharp(ogCardBase)
+    .composite([{ input: fullLogoForOg, left: 95, top: 82 }])
+    .png()
+    .toFile(path.join(rootDir, "public/og-image.png"));
+
+  await sharp(path.join(rootDir, "public/og-image.png"))
+    .toFile(path.join(rootDir, "public/brand/social/og-image.png"));
+
+  console.log("All brand assets generated using full logo.jpeg!");
 }
 
 main().catch(console.error);

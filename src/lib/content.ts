@@ -45,7 +45,7 @@ export async function getRecipes() {
 }
 
 export const getSiteSettings = cache(async () => {
-  const defaults = { name: "Valeria Barra", qualification: "Biologa Nutrizionista", shortBio: "Un percorso nutrizionale costruito intorno alla tua vita, con ascolto e consapevolezza.", city: "Salerno", email: null as string | null, phone: null as string | null, whatsapp: null as string | null, instagram: null as string | null, facebook: null as string | null, ctaLabel: "Prenota un appuntamento", seoTitle: null as string | null, seoDescription: null as string | null };
+  const defaults = { name: "Valeria Barra", qualification: "Biologa Nutrizionista", shortBio: "Biologa Nutrizionista abilitata e laureata in Farmacia. Percorsi nutrizionali costruiti intorno alla tua vita, con ascolto e rigore scientifico.", city: "Salerno", email: null as string | null, phone: null as string | null, whatsapp: null as string | null, instagram: null as string | null, facebook: null as string | null, ctaLabel: "Prenota un appuntamento", seoTitle: null as string | null, seoDescription: null as string | null };
   try {
     const settings = await prisma.siteSettings.findUnique({ where: { id: "main" } });
     return settings ? { ...defaults, ...settings } : defaults;
