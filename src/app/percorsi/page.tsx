@@ -16,6 +16,23 @@ const services = [
     includes: [
       "Colloquio approfondito su stile di vita e abitudini quotidiane",
       "Valutazione globale della salute e attenzione al rapporto tra alimentazione, integrazione e farmaci",
+      {
+        title: "Valutazione della composizione corporea",
+        subitems: [
+          {
+            title: "Misure antropometriche e plicometria",
+            text: "Rilevazione di peso, altezza e circonferenze corporee, integrata dalla misurazione delle pliche cutanee per stimare la quantità e la distribuzione del grasso sottocutaneo.",
+          },
+          {
+            title: "Bioimpedenziometria (BIA)",
+            text: "Esame rapido e non invasivo che consente di valutare lo stato di idratazione e la distribuzione dei liquidi corporei, attraverso la stima dell’acqua intra ed extracellulare.",
+          },
+          {
+            title: "Cosa valutiamo insieme",
+            text: "L’integrazione dei dati ottenuti tramite BIA e plicometria permette di stimare la composizione corporea, distinguendo la componente magra da quella grassa. Queste informazioni aiutano a monitorare l’andamento del percorso nutrizionale, valutando i cambiamenti nel tempo e orientando le strategie alimentari verso una riduzione della massa grassa con attenzione alla preservazione della massa muscolare.",
+          },
+        ],
+      },
       "Indicazioni nutrizionali chiare, sicure e adattate alla vita reale",
       "Spazio dedicato per condividere dubbi e chiarimenti",
     ],
@@ -62,9 +79,24 @@ export default function PathsPage() {
               <p>{item.intro}</p>
               <span className="eyebrow">Cosa comprende</span>
               <ul>
-                {item.includes.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
+                {item.includes.map((line, idx) => {
+                  if (typeof line === "string") {
+                    return <li key={idx}>{line}</li>;
+                  }
+                  return (
+                    <li key={line.title} className="path-item-nested">
+                      <span className="path-nested-title">{line.title}</span>
+                      <div className="path-sublist">
+                        {line.subitems.map((sub) => (
+                          <div key={sub.title} className="path-subitem">
+                            <span className="path-subitem-title">{sub.title}</span>
+                            <p>{sub.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             <div className="path-side">
