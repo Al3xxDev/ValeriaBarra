@@ -31,7 +31,13 @@ export async function POST(request: Request) {
   const parsed = bookingRequestSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Controlla i campi obbligatori e riprova." }, { status: 400 });
   if (parsed.data.website) return NextResponse.json({ ok: true });
-  if (!await allowRequest("booking", clientAddress(request), 4, 60 * 60 * 1000)) {
+  const address = clientAddress();
+  if (!address) return NextResponse.json({ error: "Il servizio non è temporaneamente disponibile." }, { status: 503 });
+  const rateLimit = await allowRequest("booking", address, 4, 60 * 60 * 1000);
+  if (rateLimit.status === "unavailable") {
+    return NextResponse.json({ error: "Il servizio non è temporaneamente disponibile." }, { status: 503 });
+  }
+  if (rateLimit.status === "limited") {
     return NextResponse.json({ error: "Hai inviato troppe richieste. Riprova più tardi." }, { status: 429 });
   }
 

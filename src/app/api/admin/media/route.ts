@@ -17,7 +17,11 @@ export async function POST(request: Request) {
   try {
     if (!await getActiveAdminSession()) return NextResponse.json({ error: "Accesso non autorizzato." }, { status: 401 });
   } catch { return NextResponse.json({ error: "Il servizio media non è disponibile." }, { status: 503 }); }
-  if (!await allowRequest("media", clientAddress(request), 40, 60 * 60 * 1000)) return NextResponse.json({ error: "Hai raggiunto il limite di caricamenti per questa ora." }, { status: 429 });
+  const address = clientAddress();
+  if (!address) return NextResponse.json({ error: "Il servizio media non è disponibile." }, { status: 503 });
+  const rateLimit = await allowRequest("media", address, 40, 60 * 60 * 1000);
+  if (rateLimit.status === "unavailable") return NextResponse.json({ error: "Il servizio media non è disponibile." }, { status: 503 });
+  if (rateLimit.status === "limited") return NextResponse.json({ error: "Hai raggiunto il limite di caricamenti per questa ora." }, { status: 429 });
 
   try {
     if (!isMediaStorageAvailable()) return NextResponse.json({ error: "Configura lo storage immagini nelle variabili d’ambiente." }, { status: 503 });
