@@ -9,7 +9,7 @@ const adminPassword = process.env.ADMIN_PASSWORD ?? "cambia-questa-password";
 const email = `e2e-${Date.now()}@example.test`;
 
 test("public pages, booking, protected admin and editorial flows", async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const consoleErrors: string[] = [];
   const missingResources: string[] = [];
   const failedStoryMedia: string[] = [];

@@ -10,6 +10,6 @@ export default defineConfig({
   datasource: {
     // Prisma CLI uses the direct connection for migrations when a provider
     // exposes a separate pooler URL for serverless runtime traffic.
-    url: process.env.DIRECT_URL || process.env.NETLIFY_DB_URL || process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres?schema=public",
+    url: process.env.DIRECT_URL || process.env.DATABASE_URL_UNPOOLED || process.env.NETLIFY_DB_URL || process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres?schema=public",
   },
 });
