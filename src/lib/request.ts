@@ -10,10 +10,68 @@ export function isSameOrigin(request: Request) {
     const targetUrl = new URL(request.url);
     if (originUrl.origin === targetUrl.origin) return true;
 
+    // TLS termination behind reverse proxy: https client origin on the same host as http target
+    if (
+      originUrl.host === targetUrl.host &&
+      originUrl.protocol === "https:" &&
+      (targetUrl.protocol === "http:" || request.headers.get("x-forwarded-proto") === "https")
+    ) {
+      return true;
+    }
+
+    // Local loopback aliases (localhost <-> 127.0.0.1)
     const isLocalOrigin = originUrl.hostname === "localhost" || originUrl.hostname === "127.0.0.1";
     const isLocalTarget = targetUrl.hostname === "localhost" || targetUrl.hostname === "127.0.0.1";
     if (isLocalOrigin && isLocalTarget && originUrl.port === targetUrl.port && originUrl.protocol === targetUrl.protocol) {
       return true;
+    }
+
+    // Match against configured site environment variables
+    const configuredOrigins = [
+      process.env.URL,
+      process.env.DEPLOY_PRIME_URL,
+      process.env.DEPLOY_URL,
+      process.env.NEXT_PUBLIC_SITE_URL,
+    ];
+    for (const configured of configuredOrigins) {
+      if (configured) {
+        try {
+          if (new URL(configured).origin === originUrl.origin) return true;
+        } catch {
+          // ignore malformed URLs
+        }
+      }
+    }
+
+    // Match against Netlify request context and site subdomain
+    let siteName = process.env.SITE_NAME?.trim()?.toLowerCase();
+    try {
+      const contextSite = getContext().site;
+      if (contextSite?.url && new URL(contextSite.url).origin === originUrl.origin) {
+        return true;
+      }
+      if (contextSite?.name) {
+        siteName = contextSite.name.trim().toLowerCase();
+      }
+    } catch {
+      // Netlify context is unavailable outside Netlify Functions.
+    }
+
+    if (siteName && originUrl.protocol === "https:") {
+      if (
+        originUrl.hostname === `${siteName}.netlify.app` ||
+        originUrl.hostname.endsWith(`--${siteName}.netlify.app`)
+      ) {
+        return true;
+      }
+    }
+
+    // If target is internal/local server behind reverse proxy, match client Host header
+    if (isLocalTarget && originUrl.protocol === "https:") {
+      const host = request.headers.get("host")?.trim();
+      if (host && originUrl.host === host) {
+        return true;
+      }
     }
 
     return false;

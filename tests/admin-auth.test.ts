@@ -108,6 +108,69 @@ test("origin validation compares against the request URL, not client-supplied fo
   assert.equal(isSameOrigin(sameOrigin), true);
 });
 
+test("origin validation accepts reverse-proxy TLS offloading and Netlify deployment origins while rejecting external origins", () => {
+  const previousUrl = process.env.URL;
+  const previousSiteName = process.env.SITE_NAME;
+
+  try {
+    process.env.URL = "https://valeriabarra.netlify.app";
+    process.env.SITE_NAME = "valeriabarra";
+
+    // TLS offloading where edge terminated HTTPS but forwarded HTTP to backend
+    const tlsOffloaded = new Request("http://valeriabarra.netlify.app/api/admin/login", {
+      headers: {
+        origin: "https://valeriabarra.netlify.app",
+        "x-forwarded-proto": "https",
+      },
+    });
+    assert.equal(isSameOrigin(tlsOffloaded), true);
+
+    // Netlify Functions runtime internal target URL matching configured site URL
+    const serverlessTarget = new Request("http://localhost:3000/api/admin/login", {
+      headers: {
+        origin: "https://valeriabarra.netlify.app",
+        host: "valeriabarra.netlify.app",
+      },
+    });
+    assert.equal(isSameOrigin(serverlessTarget), true);
+
+    // Netlify deploy preview matching site name
+    const deployPreview = new Request("http://localhost:3000/api/admin/login", {
+      headers: {
+        origin: "https://deploy-preview-42--valeriabarra.netlify.app",
+      },
+    });
+    assert.equal(isSameOrigin(deployPreview), true);
+
+    // External attacker origin rejected
+    const externalAttacker = new Request("http://valeriabarra.netlify.app/api/admin/login", {
+      headers: {
+        origin: "https://malicious.example",
+      },
+    });
+    assert.equal(isSameOrigin(externalAttacker), false);
+
+    // Another unrelated Netlify site rejected
+    const otherNetlifySite = new Request("http://localhost:3000/api/admin/login", {
+      headers: {
+        origin: "https://other-site.netlify.app",
+      },
+    });
+    assert.equal(isSameOrigin(otherNetlifySite), false);
+
+    // Insecure HTTP origin rejected against HTTPS target
+    const insecureOrigin = new Request("https://valeriabarra.netlify.app/api/admin/login", {
+      headers: {
+        origin: "http://valeriabarra.netlify.app",
+      },
+    });
+    assert.equal(isSameOrigin(insecureOrigin), false);
+  } finally {
+    process.env.URL = previousUrl;
+    process.env.SITE_NAME = previousSiteName;
+  }
+});
+
 test("rate limiting blocks before credential lookup and distinguishes storage failure from lockout", async () => {
   let lookups = 0;
   const limited = await authenticateAdmin({ address: "203.0.113.8", email: "admin@example.test", password: "x" }, initialDependencies({
