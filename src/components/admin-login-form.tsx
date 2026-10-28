@@ -16,9 +16,37 @@ export function AdminLoginForm() {
     const form = new FormData(event.currentTarget);
     try {
       const response = await fetch("/api/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.get("email"), password: form.get("password") }) });
-      const result = await response.json() as { error?: string; requestId?: string };
+      const result = await response.json() as { error?: string; requestId?: string; category?: string };
       if (!response.ok) {
-        const requestSuffix = result.requestId ? ` (ID: ${result.requestId})` : "";
+        let reason = "";
+        if (result.category) {
+          switch (result.category) {
+            case "database_url_missing":
+              reason = "DATABASE_URL non configurato su Netlify";
+              break;
+            case "auth_secret_missing_or_invalid":
+              reason = "AUTH_SECRET assente o inferiore a 32 caratteri";
+              break;
+            case "trusted_client_ip_missing":
+              reason = "IP client non rilevato";
+              break;
+            case "database_unreachable":
+              reason = "database non raggiungibile";
+              break;
+            case "database_schema_mismatch":
+              reason = "migrazioni database non applicate";
+              break;
+            case "database_authentication_failed":
+              reason = "credenziali database non valide";
+              break;
+            default:
+              reason = result.category;
+          }
+        }
+        const details = [reason ? `Causa: ${reason}` : null, result.requestId ? `ID: ${result.requestId}` : null]
+          .filter(Boolean)
+          .join(" · ");
+        const requestSuffix = details ? ` (${details})` : "";
         throw new Error(`${result.error ?? "Accesso non riuscito."}${requestSuffix}`);
       }
       router.replace("/admin"); router.refresh();

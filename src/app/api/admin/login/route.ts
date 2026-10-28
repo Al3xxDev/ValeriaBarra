@@ -25,8 +25,9 @@ export async function POST(request: Request) {
   if (!parsed.success) return jsonResponse({ error: "Inserisci email e password validi." }, 400, requestId);
 
   const email = parsed.data.email.trim().toLowerCase();
+  let failureCategory: string | undefined;
   const result = await authenticateAdmin({
-    address: clientAddress(),
+    address: clientAddress(request),
     email,
     password: parsed.data.password,
     requestId,
@@ -40,6 +41,9 @@ export async function POST(request: Request) {
     verifyPassword: compare,
     createSession,
     clearRateLimits: (address, adminEmail) => clearAdminLoginRateLimits(address, adminEmail, requestId),
+    onDiagnostic: (diag) => {
+      failureCategory = diag.category;
+    },
   });
 
   if (result.status === 200) return jsonResponse({ ok: true }, 200, requestId);
@@ -53,5 +57,8 @@ export async function POST(request: Request) {
     );
   }
 
-  return jsonResponse({ error: "Accesso temporaneamente non disponibile." }, 503, requestId);
+  return jsonResponse({
+    error: "Accesso temporaneamente non disponibile.",
+    ...(failureCategory ? { category: failureCategory } : {}),
+  }, 503, requestId);
 }

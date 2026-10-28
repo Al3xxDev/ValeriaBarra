@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   const parsed = bookingRequestSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Controlla i campi obbligatori e riprova." }, { status: 400 });
   if (parsed.data.website) return NextResponse.json({ ok: true });
-  const address = clientAddress();
+  const address = clientAddress(request);
   if (!address) return NextResponse.json({ error: "Il servizio non è temporaneamente disponibile." }, { status: 503 });
   const rateLimit = await allowRequest("booking", address, 4, 60 * 60 * 1000);
   if (rateLimit.status === "unavailable") {

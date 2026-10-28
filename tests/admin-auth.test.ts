@@ -4,7 +4,7 @@ import { authenticateAdmin, type AdminLoginDependencies } from "../src/lib/admin
 import { classifyAuthFailure } from "../src/lib/auth-diagnostics";
 import { getAdminRuntimeConfigIssues } from "../src/lib/admin-runtime-config";
 import { adminLoginRateLimits, advanceRateLimit, getLoginRateLimitKeys } from "../src/lib/rate-limit-policy";
-import { isSameOrigin, resolveClientAddress } from "../src/lib/request";
+import { clientAddress, isSameOrigin, resolveClientAddress } from "../src/lib/request";
 
 const initialDependencies = (overrides: Partial<AdminLoginDependencies> = {}): AdminLoginDependencies => ({
   checkRateLimit: async () => ({ status: "allowed" }),
@@ -90,6 +90,22 @@ test("unavailable or invalid production IPs are rejected without trusting forwar
   assert.equal(resolveClientAddress("203.0.113.10, 192.0.2.10", true), null);
   assert.equal(resolveClientAddress(undefined, true), null);
   assert.equal(resolveClientAddress(undefined, false), "development-local");
+});
+
+test("clientAddress resolves client IP from Netlify x-nf-client-connection-ip header", () => {
+  const env = process.env as Record<string, string | undefined>;
+  const previousEnv = env.NODE_ENV;
+  try {
+    env.NODE_ENV = "production";
+    const req = new Request("https://studio.example.test/api/admin/login", {
+      headers: {
+        "x-nf-client-connection-ip": "203.0.113.195",
+      },
+    });
+    assert.equal(clientAddress(req), "203.0.113.195");
+  } finally {
+    env.NODE_ENV = previousEnv;
+  }
 });
 
 test("origin validation compares against the request URL, not client-supplied forwarding headers", () => {

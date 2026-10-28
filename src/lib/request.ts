@@ -89,12 +89,19 @@ export function resolveClientAddress(platformAddress: unknown, production: boole
   return production ? null : "development-local";
 }
 
-export function clientAddress() {
+export function clientAddress(request?: Request) {
   let platformAddress: unknown;
   try {
     platformAddress = getContext().ip;
   } catch {
     // Netlify's request context does not exist in the regular Next.js dev server.
+  }
+
+  if ((typeof platformAddress !== "string" || !platformAddress.trim()) && request) {
+    platformAddress = request.headers.get("x-nf-client-connection-ip")
+      ?? request.headers.get("client-ip")
+      ?? request.headers.get("x-real-ip")
+      ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   }
 
   return resolveClientAddress(platformAddress, process.env.NODE_ENV === "production");

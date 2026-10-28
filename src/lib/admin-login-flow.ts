@@ -16,6 +16,7 @@ export type AdminLoginDependencies = {
   verifyPassword(password: string, passwordHash: string): Promise<boolean>;
   createSession(userId: string): Promise<void>;
   clearRateLimits(address: string, email: string): Promise<boolean>;
+  onDiagnostic?(diagnostic: Parameters<typeof logAuthDiagnostic>[0]): void;
 };
 
 export async function authenticateAdmin(
@@ -23,16 +24,21 @@ export async function authenticateAdmin(
   dependencies: AdminLoginDependencies,
 ): Promise<AdminLoginResult> {
   const requestId = input.requestId ?? "local-untracked";
+  const emitDiagnostic = (diagnostic: Parameters<typeof logAuthDiagnostic>[0]) => {
+    logAuthDiagnostic(diagnostic);
+    dependencies.onDiagnostic?.(diagnostic);
+  };
+
   const configurationIssues = dependencies.configurationIssues?.() ?? [];
   if (configurationIssues.length > 0) {
     for (const issue of configurationIssues) {
-      logAuthDiagnostic({ event: "admin_login_unavailable", requestId, ...issue });
+      emitDiagnostic({ event: "admin_login_unavailable", requestId, ...issue });
     }
     return { status: 503 };
   }
 
   if (!input.address) {
-    logAuthDiagnostic({ event: "admin_login_unavailable", requestId, stage: "resolve_client_ip", category: "trusted_client_ip_missing" });
+    emitDiagnostic({ event: "admin_login_unavailable", requestId, stage: "resolve_client_ip", category: "trusted_client_ip_missing" });
     return { status: 503 };
   }
 
@@ -40,12 +46,12 @@ export async function authenticateAdmin(
   try {
     rateLimit = await dependencies.checkRateLimit(input.address, input.email);
   } catch (error) {
-    logAuthDiagnostic({ event: "admin_login_unavailable", requestId, stage: "rate_limit_check", category: classifyAuthFailure(error) });
+    emitDiagnostic({ event: "admin_login_unavailable", requestId, stage: "rate_limit_check", category: classifyAuthFailure(error) });
     return { status: 503 };
   }
 
   if (rateLimit.status === "unavailable") {
-    logAuthDiagnostic({
+    emitDiagnostic({
       event: "admin_login_unavailable",
       requestId,
       stage: "rate_limit_check",
@@ -54,7 +60,7 @@ export async function authenticateAdmin(
     return { status: 503 };
   }
   if (rateLimit.status === "limited") {
-    logAuthDiagnostic({
+    emitDiagnostic({
       event: "admin_login_rate_limited",
       requestId,
       stage: "rate_limit_check",
@@ -67,12 +73,12 @@ export async function authenticateAdmin(
   try {
     user = await dependencies.findAdmin(input.email);
   } catch (error) {
-    logAuthDiagnostic({ event: "admin_login_unavailable", requestId, stage: "account_lookup", category: classifyAuthFailure(error) });
+    emitDiagnostic({ event: "admin_login_unavailable", requestId, stage: "account_lookup", category: classifyAuthFailure(error) });
     return { status: 503 };
   }
 
   if (!user) {
-    logAuthDiagnostic({ event: "admin_login_rejected", requestId, stage: "credential_check", category: "account_not_found" });
+    emitDiagnostic({ event: "admin_login_rejected", requestId, stage: "credential_check", category: "account_not_found" });
     return { status: 401 };
   }
 
@@ -80,25 +86,25 @@ export async function authenticateAdmin(
   try {
     valid = await dependencies.verifyPassword(input.password, user.passwordHash);
   } catch (error) {
-    logAuthDiagnostic({ event: "admin_login_unavailable", requestId, stage: "password_verification", category: classifyAuthFailure(error) });
+    emitDiagnostic({ event: "admin_login_unavailable", requestId, stage: "password_verification", category: classifyAuthFailure(error) });
     return { status: 503 };
   }
   if (!valid) {
-    logAuthDiagnostic({ event: "admin_login_rejected", requestId, stage: "credential_check", category: "password_mismatch" });
+    emitDiagnostic({ event: "admin_login_rejected", requestId, stage: "credential_check", category: "password_mismatch" });
     return { status: 401 };
   }
 
   try {
     await dependencies.createSession(user.id);
   } catch (error) {
-    logAuthDiagnostic({ event: "admin_login_unavailable", requestId, stage: "session_creation", category: classifyAuthFailure(error) });
+    emitDiagnostic({ event: "admin_login_unavailable", requestId, stage: "session_creation", category: classifyAuthFailure(error) });
     return { status: 503 };
   }
 
   try {
     await dependencies.clearRateLimits(input.address, input.email);
   } catch (error) {
-    logAuthDiagnostic({ event: "admin_login_throttle_reset_failed", requestId, stage: "rate_limit_reset", category: classifyAuthFailure(error) });
+    emitDiagnostic({ event: "admin_login_throttle_reset_failed", requestId, stage: "rate_limit_reset", category: classifyAuthFailure(error) });
   }
 
   return { status: 200 };

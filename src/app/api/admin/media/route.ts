@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   try {
     if (!await getActiveAdminSession()) return NextResponse.json({ error: "Accesso non autorizzato." }, { status: 401 });
   } catch { return NextResponse.json({ error: "Il servizio media non è disponibile." }, { status: 503 }); }
-  const address = clientAddress();
+  const address = clientAddress(request);
   if (!address) return NextResponse.json({ error: "Il servizio media non è disponibile." }, { status: 503 });
   const rateLimit = await allowRequest("media", address, 40, 60 * 60 * 1000);
   if (rateLimit.status === "unavailable") return NextResponse.json({ error: "Il servizio media non è disponibile." }, { status: 503 });
