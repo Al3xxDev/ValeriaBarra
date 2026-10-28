@@ -157,10 +157,12 @@ The local database seed script creates a default administrator account:
 
 | Variable | Required | Default / Example | Purpose |
 | :--- | :---: | :--- | :--- |
-| `DATABASE_URL` | **Yes** | `postgresql://valeria:valeria@localhost:5432/valeria_barra?schema=public` | Connection string for PostgreSQL database. |
+| `DATABASE_URL` | **Yes, unless using Netlify Database** | `postgresql://valeria:valeria@localhost:5432/valeria_barra?schema=public` | Runtime connection for local or external PostgreSQL; use the provider's pooled URL on Netlify. |
+| `DIRECT_URL` | Recommended for pooled providers | Same local URL, or provider's direct URL | Used by Prisma CLI for migrations; keep it in Netlify's Production context only. |
+| `NETLIFY_DB_URL` | Netlify Database | Set by Netlify after provisioning | Optional Netlify-managed PostgreSQL connection. Do not copy it into source control. |
 | `AUTH_SECRET` | **Yes** | `openssl rand -hex 32` | Cryptographic key (min 32 chars) for signing session JWTs. |
-| `ADMIN_EMAIL` | **Yes** | `admin@valeriabarra.local` | Email address for the initial administrative account. |
-| `ADMIN_PASSWORD` | **Yes** | `change-this-development-password` | Initial password hashed and stored during database seed. |
+| `ADMIN_EMAIL` | First production seed only | `admin@valeriabarra.local` | Email for the initial administrative account; production seeding never changes an existing admin password. |
+| `ADMIN_PASSWORD` | First production seed only | `change-this-development-password` | Initial password hashed during the first production seed only. |
 | `NEXT_PUBLIC_SITE_URL` | **Yes** | `http://localhost:3000` | Canonical site origin for OpenGraph, sitemaps, and robots.txt. |
 | `NEXT_PUBLIC_GA_ID` | No | `G-XXXXXXXXXX` | Optional Google Analytics 4 Measurement ID. |
 | `RESEND_API_KEY` | No | `re_...` | API key for transactional emails via Resend. |
@@ -228,12 +230,12 @@ npm start
 
 ### 2. Deployment Architecture
 - **Web Layer**: Can be hosted on [Vercel](https://vercel.com/), AWS ECS, Railway, Fly.io, or any Node.js container platform.
-- **Database**: Managed PostgreSQL instance (AWS RDS, Supabase, Neon, Neon with Prisma connection pooling).
+- **Database**: Managed PostgreSQL instance (AWS RDS, Supabase, or Neon with a pooled runtime connection).
 - **Object Storage**: Private AWS S3 bucket, Cloudflare R2, or Wasabi with strict private access policies. Ensure the bucket does **not** grant public read access.
 
 ### 3. Production Release Checklist
-1. Apply database migrations: `npm run db:deploy`.
-2. Seed administrative credentials once: `NODE_ENV=production npm run db:seed`.
+1. Configure managed PostgreSQL. For Neon, set `DATABASE_URL` to the pooled connection and `DIRECT_URL` to the direct connection, both in Netlify's Production context. Production builds apply the existing Prisma migrations with `DIRECT_URL`.
+2. If the production database has no admin account, set `ADMIN_EMAIL` and `ADMIN_PASSWORD` for the Production deploy context before deploying. The seed creates the first account only and leaves any existing admin credentials unchanged. Remove `ADMIN_PASSWORD` from Netlify after that deploy.
 3. Set high-entropy `AUTH_SECRET` generated with `openssl rand -hex 32`.
 4. Configure production `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY`, and `STORAGE_SECRET_KEY` with `STORAGE_LOCAL="false"`.
 5. Set `NEXT_PUBLIC_SITE_URL` to the public production domain (e.g., `https://www.valeriabarra.it`).

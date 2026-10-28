@@ -1,4 +1,5 @@
 import { isIP } from "node:net";
+import { randomUUID } from "node:crypto";
 import { getContext } from "@netlify/functions";
 
 export function isSameOrigin(request: Request) {
@@ -6,7 +7,16 @@ export function isSameOrigin(request: Request) {
   if (!origin) return true;
   try {
     const originUrl = new URL(origin);
-    return originUrl.origin === new URL(request.url).origin;
+    const targetUrl = new URL(request.url);
+    if (originUrl.origin === targetUrl.origin) return true;
+
+    const isLocalOrigin = originUrl.hostname === "localhost" || originUrl.hostname === "127.0.0.1";
+    const isLocalTarget = targetUrl.hostname === "localhost" || targetUrl.hostname === "127.0.0.1";
+    if (isLocalOrigin && isLocalTarget && originUrl.port === targetUrl.port && originUrl.protocol === targetUrl.protocol) {
+      return true;
+    }
+
+    return false;
   } catch {
     return false;
   }
@@ -30,4 +40,15 @@ export function clientAddress() {
   }
 
   return resolveClientAddress(platformAddress, process.env.NODE_ENV === "production");
+}
+
+export function requestCorrelationId() {
+  try {
+    const requestId = getContext().requestId;
+    if (typeof requestId === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(requestId)) return requestId;
+  } catch {
+    // Use a local ID when Netlify request context is unavailable.
+  }
+
+  return randomUUID();
 }

@@ -3,9 +3,19 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 
 const cookieName = "valeria_admin_session";
+
+export class AuthConfigurationError extends Error {
+  readonly code = "AUTH_SECRET_INVALID";
+
+  constructor() {
+    super("Production authentication secret is missing or too short.");
+    this.name = "AuthConfigurationError";
+  }
+}
+
 function getSecret() {
   const value = process.env.AUTH_SECRET;
-  if (process.env.NODE_ENV === "production" && (!value || value.length < 32)) throw new Error("AUTH_SECRET must contain at least 32 characters in production.");
+  if (process.env.NODE_ENV === "production" && (!value || value.length < 32)) throw new AuthConfigurationError();
   return new TextEncoder().encode(value || "development-only-secret-change-before-deploy-32chars");
 }
 

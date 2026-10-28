@@ -16,8 +16,11 @@ export function AdminLoginForm() {
     const form = new FormData(event.currentTarget);
     try {
       const response = await fetch("/api/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.get("email"), password: form.get("password") }) });
-      const result = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(result.error ?? "Accesso non riuscito.");
+      const result = await response.json() as { error?: string; requestId?: string };
+      if (!response.ok) {
+        const requestSuffix = result.requestId ? ` (ID: ${result.requestId})` : "";
+        throw new Error(`${result.error ?? "Accesso non riuscito."}${requestSuffix}`);
+      }
       router.replace("/admin"); router.refresh();
     } catch (err) { setError(err instanceof Error ? err.message : "Accesso non riuscito."); }
     finally { submitting.current = false; setPending(false); }

@@ -4,15 +4,36 @@ import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { BeforeAfterStatus, ConsentScope } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const datasourceUrl = process.env.NETLIFY_DB_URL || process.env.DATABASE_URL;
+const prisma = new PrismaClient(datasourceUrl ? { datasourceUrl } : undefined);
 
 async function main() {
   const productionSeed = String(process.env.NODE_ENV) === "production";
+  if (productionSeed) {
+    const existingAdminCount = await prisma.adminUser.count();
+    if (existingAdminCount > 0) {
+      console.log("Production admin account already exists; leaving its credentials unchanged.");
+      return;
+    }
+
+    const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    const password = process.env.ADMIN_PASSWORD;
+    if (!email || !password) {
+      throw new Error("Set ADMIN_EMAIL and ADMIN_PASSWORD explicitly before creating the first production admin.");
+    }
+    if (password.length < 12) throw new Error("ADMIN_PASSWORD deve contenere almeno 12 caratteri.");
+
+    await prisma.adminUser.create({
+      data: { email, passwordHash: await hash(password, 12), name: "Valeria Barra" },
+    });
+    console.log("Created the first production admin account.");
+    return;
+  }
+
   const email = (process.env.ADMIN_EMAIL ?? "admin@valeriabarra.local").toLowerCase();
-  const password = process.env.ADMIN_PASSWORD ?? (productionSeed ? "" : "cambia-questa-password");
+  const password = process.env.ADMIN_PASSWORD ?? "cambia-questa-password";
   if (password.length < 12) throw new Error("ADMIN_PASSWORD deve contenere almeno 12 caratteri.");
   await prisma.adminUser.upsert({ where: { email }, create: { email, passwordHash: await hash(password, 12), name: "Valeria Barra" }, update: { passwordHash: await hash(password, 12) } });
-  if (productionSeed) return;
 
   const alimentazione = await prisma.category.upsert({ where: { slug: "alimentazione" }, create: { name: "Alimentazione", slug: "alimentazione" }, update: {} });
   const consapevolezza = await prisma.category.upsert({ where: { slug: "consapevolezza" }, create: { name: "Consapevolezza", slug: "consapevolezza" }, update: {} });

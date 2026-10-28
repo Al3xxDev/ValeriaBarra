@@ -2,24 +2,30 @@ import { createHash } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { advanceRateLimit, getLoginRateLimitKeys } from "@/lib/rate-limit-policy";
+import { classifyAuthFailure, logAuthDiagnostic } from "@/lib/auth-diagnostics";
 
 export type RateLimitResult =
   | { status: "allowed" }
   | { status: "limited"; retryAfterMs: number }
-  | { status: "unavailable" };
+  | { status: "unavailable"; reason?: string };
 
 function makeKey(scope: string, value: string) {
   return `${scope}:${createHash("sha256").update(value).digest("hex")}`;
 }
 
-function logStorageFailure(error: unknown) {
-  console.error("Rate limit storage unavailable", error instanceof Error ? error.name : "unknown");
+function logStorageFailure(error: unknown, stage: string, requestId?: string) {
+  logAuthDiagnostic({
+    event: "admin_login_unavailable",
+    requestId: requestId ?? "untracked",
+    stage,
+    category: classifyAuthFailure(error),
+  });
 }
 
 type ThrottleTransaction = Prisma.TransactionClient;
 
 async function lockKey(tx: ThrottleTransaction, key: string) {
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${key})::bigint)`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key})::bigint)`;
 }
 
 async function recordAttempt(tx: ThrottleTransaction, key: string, limit: number, windowMs: number, now: number) {
@@ -76,7 +82,7 @@ export async function allowRequest(
 
     return toRateLimitResult(transition.allowed, transition.retryAfterMs);
   } catch (error) {
-    logStorageFailure(error);
+    logStorageFailure(error, "request_rate_limit_storage");
     return { status: "unavailable" };
   }
 }
@@ -98,8 +104,8 @@ export async function allowAdminLogin(address: string, email: string): Promise<R
 
     return toRateLimitResult(result.allowed, result.retryAfterMs);
   } catch (error) {
-    logStorageFailure(error);
-    return { status: "unavailable" };
+    const reason = classifyAuthFailure(error);
+    return { status: "unavailable", reason };
   }
 }
 
@@ -112,12 +118,12 @@ export async function clearRateLimit(scope: string, value: string) {
     });
     return true;
   } catch (error) {
-    logStorageFailure(error);
+    logStorageFailure(error, "request_rate_limit_reset");
     return false;
   }
 }
 
-export async function clearAdminLoginRateLimits(address: string, email: string) {
+export async function clearAdminLoginRateLimits(address: string, email: string, requestId?: string) {
   const [ipKey, pairKey] = getLoginRateLimitKeys(address, email);
   const ipStorageKey = makeKey(ipKey.scope, ipKey.value);
   const pairStorageKey = makeKey(pairKey.scope, pairKey.value);
@@ -129,7 +135,7 @@ export async function clearAdminLoginRateLimits(address: string, email: string) 
     });
     return true;
   } catch (error) {
-    logStorageFailure(error);
+    logStorageFailure(error, "rate_limit_reset", requestId);
     return false;
   }
 }

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { authenticateAdmin, type AdminLoginDependencies } from "../src/lib/admin-login-flow";
+import { classifyAuthFailure } from "../src/lib/auth-diagnostics";
+import { getAdminRuntimeConfigIssues } from "../src/lib/admin-runtime-config";
 import { adminLoginRateLimits, advanceRateLimit, getLoginRateLimitKeys } from "../src/lib/rate-limit-policy";
 import { isSameOrigin, resolveClientAddress } from "../src/lib/request";
 
@@ -12,6 +14,17 @@ const initialDependencies = (overrides: Partial<AdminLoginDependencies> = {}): A
   clearRateLimits: async () => true,
   ...overrides,
 });
+
+async function captureErrors<T>(operation: () => Promise<T>) {
+  const originalError = console.error;
+  const entries: string[] = [];
+  console.error = (...args: unknown[]) => { entries.push(String(args[0])); };
+  try {
+    return { result: await operation(), entries };
+  } finally {
+    console.error = originalError;
+  }
+}
 
 test("valid admin credentials create a session and clear only the current login limits", async () => {
   const calls: string[] = [];
@@ -120,3 +133,89 @@ test("a missing trusted IP fails closed without creating an account-wide throttl
   assert.deepEqual(result, { status: 503 });
   assert.equal(rateLimitCalls, 0);
 });
+
+test("login diagnostics identify rate limiter, database schema, and session configuration failures without logging raw errors", async () => {
+  const requestId = "netlify-request-123";
+  const cases = [
+    {
+      stage: "rate_limit_check",
+      category: "database_unreachable",
+      deps: initialDependencies({ checkRateLimit: async () => { throw Object.assign(new Error("do not log this"), { code: "P1001" }); } }),
+    },
+    {
+      stage: "account_lookup",
+      category: "database_schema_mismatch",
+      deps: initialDependencies({ findAdmin: async () => { throw Object.assign(new Error("do not log this"), { code: "P2021" }); } }),
+    },
+    {
+      stage: "session_creation",
+      category: "auth_secret_invalid",
+      deps: initialDependencies({ createSession: async () => { throw Object.assign(new Error("secret value must not appear"), { name: "AuthConfigurationError", code: "AUTH_SECRET_INVALID" }); } }),
+    },
+  ];
+
+  for (const testCase of cases) {
+    const { result, entries } = await captureErrors(() => authenticateAdmin({
+      address: "203.0.113.8",
+      email: "admin@example.test",
+      password: "private-password",
+      requestId,
+    }, testCase.deps));
+
+    assert.deepEqual(result, { status: 503 });
+    const event = JSON.parse(entries[0]) as Record<string, string>;
+    assert.equal(event.requestId, requestId);
+    assert.equal(event.stage, testCase.stage);
+    assert.equal(event.category, testCase.category);
+    assert.equal(entries.join(" ").includes("do not log this"), false);
+    assert.equal(entries.join(" ").includes("secret value"), false);
+    assert.equal(entries.join(" ").includes("private-password"), false);
+  }
+});
+
+test("diagnostic categories map common Prisma connection and migration errors safely", () => {
+  assert.equal(classifyAuthFailure({ code: "P1000" }), "database_authentication_failed");
+  assert.equal(classifyAuthFailure({ code: "P1002" }), "database_timeout");
+  assert.equal(classifyAuthFailure({ code: "P2022" }), "database_schema_mismatch");
+  assert.equal(classifyAuthFailure({ name: "PrismaClientInitializationError" }), "database_initialization_failed");
+  assert.equal(classifyAuthFailure(new Error("unclassified")), "internal_error");
+});
+
+test("missing production database and session settings fail closed with precise stages", async () => {
+  const issues = getAdminRuntimeConfigIssues({ DATABASE_URL: "", AUTH_SECRET: "short" });
+  assert.deepEqual(issues, [
+    { stage: "database_configuration", category: "database_url_missing" },
+    { stage: "session_configuration", category: "auth_secret_missing_or_invalid" },
+  ]);
+
+  let rateLimitCalls = 0;
+  const { result, entries } = await captureErrors(() => authenticateAdmin({
+    address: "203.0.113.8",
+    email: "admin@example.test",
+    password: "private-password",
+    requestId: "deploy-request-456",
+  }, initialDependencies({
+    configurationIssues: () => issues,
+    checkRateLimit: async () => { rateLimitCalls += 1; return { status: "allowed" }; },
+  })));
+
+  assert.deepEqual(result, { status: 503 });
+  assert.equal(rateLimitCalls, 0);
+  assert.equal(entries.length, 2);
+  assert.equal(entries.join(" ").includes("private-password"), false);
+  assert.deepEqual(entries.map((entry) => JSON.parse(entry)).map((entry) => [entry.stage, entry.category]), [
+    ["database_configuration", "database_url_missing"],
+    ["session_configuration", "auth_secret_missing_or_invalid"],
+  ]);
+});
+
+test("Netlify Database connection is accepted as the production Postgres URL", () => {
+  assert.deepEqual(getAdminRuntimeConfigIssues({ NETLIFY_DB_URL: "postgresql://database", AUTH_SECRET: "a".repeat(32) }), []);
+});
+
+test("allowAdminLogin executes advisory lock and records attempt in PostgreSQL without deserialization errors", async () => {
+  const { allowAdminLogin } = await import("../src/lib/rate-limit");
+  const result = await allowAdminLogin("127.0.0.1", "integration-lock-test@example.test");
+  assert.equal(result.status, "allowed");
+});
+
