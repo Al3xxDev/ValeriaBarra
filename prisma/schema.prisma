@@ -192,6 +192,13 @@ model MediaAsset {
   casesAfter  BeforeAfterCase[] @relation("CaseAfter")
 }
 
+model MediaPayload {
+  key         String   @id
+  bytes       Bytes
+  contentType String   @default("image/webp")
+  createdAt   DateTime @default(now())
+}
+
 model SiteSettings {
   id          String   @id @default("main")
   name        String   @default("Valeria Barra")

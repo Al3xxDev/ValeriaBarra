@@ -10,7 +10,7 @@ import { deletePrivateMedia, isMediaStorageAvailable, savePrivateMedia } from "@
 export const runtime = "nodejs";
 const maxBytes = 8 * 1024 * 1024;
 const maxPixels = 24_000_000;
-const acceptedFormats = new Set(["jpeg", "png", "webp"]);
+const acceptedFormats = new Set(["jpeg", "png", "webp", "heif"]);
 
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Richiesta non valida." }, { status: 403 });
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const image = sharp(inputBytes, { limitInputPixels: maxPixels, failOn: "warning", animated: false });
     const metadata = await image.metadata();
     if (!metadata.width || !metadata.height || !metadata.format || !acceptedFormats.has(metadata.format)) {
-      return NextResponse.json({ error: "Sono supportate immagini JPEG, PNG o WebP valide." }, { status: 415 });
+      return NextResponse.json({ error: "Sono supportate immagini JPEG, PNG, WebP o HEIC/HEIF valide." }, { status: 415 });
     }
     if (metadata.width * metadata.height > maxPixels) return NextResponse.json({ error: "L’immagine supera la risoluzione massima consentita." }, { status: 413 });
     output = await sharp(inputBytes, { limitInputPixels: maxPixels, failOn: "warning", animated: false })

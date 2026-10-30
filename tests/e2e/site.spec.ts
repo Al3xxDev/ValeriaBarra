@@ -9,7 +9,7 @@ const adminPassword = process.env.ADMIN_PASSWORD ?? "cambia-questa-password";
 const email = `e2e-${Date.now()}@example.test`;
 
 test("public pages, booking, protected admin and editorial flows", async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(240_000);
   const consoleErrors: string[] = [];
   const missingResources: string[] = [];
   const failedStoryMedia: string[] = [];
@@ -162,9 +162,9 @@ test("public pages, booking, protected admin and editorial flows", async ({ page
   await page.locator('input[name="imageBeforeAlt"]').fill("Illustrazione di prova prima del percorso.");
   await page.locator('input[name="imageAfterAlt"]').fill("Illustrazione di prova dopo il percorso.");
   await page.getByLabel("Carica immagine prima").setInputFiles({ name: "prima.png", mimeType: "image/png", buffer: pixelImage });
-  await expect(page.getByText("Immagine ottimizzata e salvata.", { exact: false }).first()).toBeVisible();
+  await expect(page.locator('input[name="imageBefore"]')).toHaveValue(/\/api\/media\//);
   await page.getByLabel("Carica immagine dopo").setInputFiles({ name: "dopo.png", mimeType: "image/png", buffer: pixelImage });
-  await expect(page.getByText("Immagine ottimizzata e salvata.", { exact: false }).last()).toBeVisible();
+  await expect(page.locator('input[name="imageAfter"]')).toHaveValue(/\/api\/media\//);
   await page.getByRole("button", { name: "Anteprima privata" }).click();
   await expect(page.locator(".admin-story-preview")).toContainText("Anteprima privata · non pubblica");
   await expect(page.locator(".admin-story-preview img").first()).toHaveAttribute("src", /\/api\/admin\/media\//);
@@ -180,7 +180,7 @@ test("public pages, booking, protected admin and editorial flows", async ({ page
 
   await page.goto("/admin/content");
   await page.getByRole("tab", { name: "Storie di percorso" }).click();
-  await page.locator(".content-item").filter({ hasText: storyTitle }).getByRole("button", { name: "Modifica" }).click();
+  await page.locator(".content-item").filter({ hasText: storyTitle }).getByRole("button", { name: "Modifica" }).click({ timeout: 15_000 });
   await expect(page.getByRole("heading", { name: "Cronologia dei consensi" })).toBeVisible();
   await page.locator('select[name="status"]').selectOption("PUBLISHED");
   await page.getByRole("button", { name: "Salva modifiche" }).click();

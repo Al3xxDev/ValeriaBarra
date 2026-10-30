@@ -528,6 +528,7 @@ a.booking-row { background: rgba(255,255,255,.38); }
 .upload-button { position: relative; display: flex; min-height: 46px; align-items: center; justify-content: center; padding: 0 16px; border: 1px solid #daddd3; color: #435246; font-size: var(--text-sm); cursor: pointer; }
 .upload-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
 .upload-status { flex-basis: 100%; color: #536156; font-size: var(--text-xs); line-height: 1.45; }
+.upload-status.is-error { color: #a43a28; font-weight: 580; }
 .upload-button:focus-within { outline: 3px solid #bd775d; outline-offset: 3px; }
 .upload-preview { display: grid; width: 100%; grid-template-columns: minmax(0,220px) auto; gap: 10px; align-items: end; }
 .upload-preview > div { position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; background: #e5e7df; }

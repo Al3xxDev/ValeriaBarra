@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { BeforeAfterCard, type BeforeAfterCardData } from "@/components/before-after-card";
 import { MediaUrlField } from "@/components/media-url-field";
 import { HelpTooltip } from "@/components/help-tooltip";
@@ -68,17 +68,31 @@ export function ContentManager() {
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<BeforeAfterCardData | null>(null);
 
-  const load = useCallback(async (selected: Kind = kind) => {
+  const currentKindRef = useRef(kind);
+  useEffect(() => {
+    currentKindRef.current = kind;
+  }, [kind]);
+
+  const load = useCallback(async (selected: Kind = currentKindRef.current) => {
     setLoading(true);
     try {
       const response = await fetch(`/api/admin/${selected}`);
       const data = await response.json() as ContentItem[] | { error?: string };
+      if (currentKindRef.current !== selected) return;
       if (!response.ok || !Array.isArray(data)) throw new Error((data as { error?: string }).error ?? "Caricamento non riuscito.");
       setItems(data);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Errore nel caricamento."); }
-    finally { setLoading(false); }
-  }, [kind]);
-  useEffect(() => { const timer = window.setTimeout(() => { void load(kind); }, 0); return () => window.clearTimeout(timer); }, [kind, load]);
+    } catch (error) {
+      if (currentKindRef.current === selected) {
+        setMessage(error instanceof Error ? error.message : "Errore nel caricamento.");
+      }
+    } finally {
+      if (currentKindRef.current === selected) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load(kind);
+  }, [kind, load]);
 
   async function remove(item: ContentItem) {
     if (!window.confirm(`Eliminare “${item.title}” e i consensi associati?`)) return;

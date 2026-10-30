@@ -22,7 +22,16 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
     const bytes = await loadPrivateMedia(asset.storageKey);
     if (!bytes) return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
-    return new Response(bytes, { headers: { "Content-Type": asset.mimeType, "Content-Length": String(bytes.byteLength), "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox" } });
+    const isEditorial = Boolean(article || recipe);
+    return new Response(bytes, {
+      headers: {
+        "Content-Type": asset.mimeType,
+        "Content-Length": String(bytes.byteLength),
+        "Cache-Control": isEditorial ? "public, max-age=86400, stale-while-revalidate=604800" : "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; sandbox",
+      },
+    });
   } catch (error) {
     console.error("Image retrieval failed", error instanceof Error ? error.name : "unknown");
     return NextResponse.json({ error: "Immagine non disponibile." }, { status: 503, headers: { "Cache-Control": "no-store" } });
