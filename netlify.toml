@@ -1,5 +1,5 @@
 [build]
-  command = 'if [ "$CONTEXT" = "production" ] && { [ -n "$NETLIFY_DB_URL" ] || [ -n "$DATABASE_URL" ]; }; then npm run db:deploy; if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then NODE_ENV=production npm run db:seed; fi; fi && npm run build'
+  command = 'npx prisma generate && if [ "$CONTEXT" = "production" ] && { [ -n "$NETLIFY_DB_URL" ] || [ -n "$DATABASE_URL" ]; }; then npm run db:deploy; if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then NODE_ENV=production npm run db:seed; fi; fi && npm run build'
   publish = ".next"
 
 [build.environment]
